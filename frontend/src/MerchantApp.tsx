@@ -357,7 +357,7 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
                   <div className="my-2.5 h-px bg-[#EEF2F6]" />
                   <div className="flex items-center justify-between">
                     {o.kind === "loan" ? <Pill bg="#FFFAEB" fg="#B54708">{t.partnerLoan}</Pill>
-                      : <Pill bg="#ECFDF3" fg="#067647">+{inr(o.score)} {t.perMonth}</Pill>}
+                      : <Pill bg="#ECFDF3" fg="#067647">+{inr(o.evidence.est_extra_sales_month || o.evidence.est_extra_sales || o.score)} {t.perMonth}</Pill>}
                     <span className="deva text-[13.5px] font-extrabold text-[#00A3DB]">{o.action_label} ›</span>
                   </div>
                 </button>
