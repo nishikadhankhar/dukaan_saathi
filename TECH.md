@@ -89,7 +89,7 @@ with pandas in about 1–2 seconds at startup. Production would read from Paytm'
 
 "Nearby" = the same shop category within 1.5 km. Ranked by expected ₹ value.
 
-**The 74 vs 17 question:** 18 customers were planted as moving to the rival. The detector reports 17 because
+**The 18 vs 17 question:** 18 customers were planted as moving to the rival. The detector reports 17 because
 one of them paid at the rival only once in the window, and the rule needs 2 visits to count as "moved".
 That's the rule being conservative, not a bug.
 
