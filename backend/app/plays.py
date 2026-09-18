@@ -196,6 +196,28 @@ def _low_ticket(m: Merchant):
 
 
 # --------------------------------------------------------------------------- #
+def price_loan(amount: int, days: int, monthly_rate_pct: float, fee_pct: float) -> dict:
+    """Reducing-balance loan repaid in equal daily instalments from settlements.
+
+    Interest accrues daily on what is still owed (monthly rate x 12 / 365). The
+    processing fee is deducted at disbursal. APR is the annualised rate implied by
+    the cash actually received vs the instalments paid -- fee included -- as RBI's
+    Key Fact Statement requires.
+    """
+    r = monthly_rate_pct / 100 * 12 / 365
+    daily = int(math.ceil(amount * r / (1 - (1 + r) ** -days)))
+    total = daily * days
+    fee = int(amount * fee_pct / 100)
+    received = amount - fee
+    lo, hi = 0.0, 0.01                      # solve for the daily rate that prices `received`
+    for _ in range(80):
+        mid = (lo + hi) / 2
+        pv = daily * (1 - (1 + mid) ** -days) / mid
+        lo, hi = (mid, hi) if pv > received else (lo, mid)
+    return {"daily_repayment": daily, "total_repayable": total, "interest": total - amount,
+            "fee": fee, "apr_pct": round(lo * 365 * 100, 1)}
+
+
 def _cash_gap(m: Merchant):
     f = m.forecast()
     need, cushion = f["extra_stock_needed"], f["weekly_margin"] * CASH_GAP_MARGIN_WEEKS
@@ -209,16 +231,16 @@ def _cash_gap(m: Merchant):
     from .world import FESTIVAL_NAME
     amount = int(math.ceil(need / 5000.0) * 5000)   # never offer less than the need
     tenure_days, monthly_rate, fee_pct = 60, 1.5, 1.0
-    interest = int(amount * monthly_rate / 100 * (tenure_days / 30))
-    fee = int(amount * fee_pct / 100)
-    total = amount + interest + fee
+    q = price_loan(amount, tenure_days, monthly_rate, fee_pct)
+    fee, total, daily = q["fee"], q["total_repayable"], q["daily_repayment"]
 
     ev = {"festival_days_away": f["days_to_festival"], "expected_uplift_pct": f["uplift_pct"],
           "festival_window_days": f["festival_window_days"], "daily_sales": f["daily_gmv"],
           "extra_stock_needed": need, "weekly_margin": f["weekly_margin"],
           "margin_pct": f["margin_pct"], "loan_amount": amount, "tenure_days": tenure_days,
-          "monthly_rate_pct": monthly_rate, "processing_fee": fee,
-          "total_repayable": total, "daily_repayment": int(round(total / tenure_days))}
+          "monthly_rate_pct": monthly_rate, "processing_fee": fee, "interest": q["interest"],
+          "amount_received": amount - fee, "apr_pct": q["apr_pct"],
+          "total_repayable": total, "daily_repayment": daily}
 
     series = []
     for i in range(1, 31):
@@ -235,7 +257,8 @@ def _cash_gap(m: Merchant):
         evidence=ev, charts={"forecast": series, "festival_name": FESTIVAL_NAME},
         action={"kind": "loan", "amount": amount, "tenure_days": tenure_days,
                 "partner": "Demo Partner NBFC", "total_repayable": total,
-                "daily_repayment": int(round(total / tenure_days)), "processing_fee": fee,
+                "daily_repayment": daily, "processing_fee": fee, "interest": q["interest"],
+                "amount_received": amount - fee, "apr_pct": q["apr_pct"],
                 "monthly_rate_pct": monthly_rate},
         detector=check,
         provenance={"daily_sales": m.prov.add("Your last 28 days of payments",

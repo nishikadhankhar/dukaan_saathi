@@ -548,7 +548,7 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
         const f = opp.charts.forecast, mx = Math.max(...f.map((x: any) => x.sales));
         const facts = lang === "hi" ? [
           `लोन ${loan.partner} देता है। Paytm सिर्फ़ जोड़ता है, लोन देने वाला नहीं।`,
-          `ब्याज ${loan.monthly_rate_pct}% प्रति माह, पूरी रकम पर, और एक बार ${inr(loan.processing_fee)} फ़ीस।`,
+          `ब्याज ${loan.monthly_rate_pct}% प्रति माह, घटते बैलेंस पर (कुल ${inr(loan.interest)})। ${inr(loan.processing_fee)} फ़ीस पहले कटेगी, आपको ${inr(loan.amount_received)} मिलेंगे। APR ${loan.apr_pct}%।`,
           "आपकी सहमति के बिना कुछ नहीं भेजा जाता। पैसा लेंडर की मंज़ूरी के बाद ही आता है।",
         ] : [loan.disclosures[0], loan.disclosures[1], loan.disclosures[3]];
         return (
@@ -571,7 +571,7 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
                   <div className="text-right"><div className="deva tnum text-[14px] font-extrabold text-[#7A2E0E]">{inr(loan.daily_repayment)} {t.perDay}</div><div className="deva text-[11px] font-medium text-[#93370D]">{t.fromSettle(loan.tenure_days)}</div></div>
                 </div>
                 <div className="mt-2.5 flex justify-between">
-                  {[[t.interest, `${loan.monthly_rate_pct}%/${lang === "hi" ? "माह" : "mo"}`], [t.fee, inr(loan.processing_fee)], [t.total, inr(loan.total_repayable)]].map(([k, v]: any) => (
+                  {[[t.interest, inr(loan.interest)], [t.fee, inr(loan.processing_fee)], ["APR", `${loan.apr_pct}%`], [t.total, inr(loan.total_repayable)]].map(([k, v]: any) => (
                     <div key={k}><div className="deva text-[11px] font-medium text-[#93370D]">{k}</div><div className="deva tnum text-[13.5px] font-bold text-[#7A2E0E]">{v}</div></div>
                   ))}
                 </div>

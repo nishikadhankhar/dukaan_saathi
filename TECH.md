@@ -211,9 +211,12 @@ Masked IDs, k-anonymity (≥ 10) for any cross-shop pattern, competitors never n
 after explicit consent, keys in a git-ignored `.env`.
 
 **Loan interest rate / APR?**
-1.5% a month flat on ₹65,000 for 60 days (₹1,950) plus a 1% fee (₹650) = ₹67,600, repaid ₹1,127 a day.
-Because it's flat and repaid daily, the **effective annual rate is about 60%**. RBI's digital lending rules
-require showing an APR in a Key Fact Statement. The prototype doesn't yet. Be ready for this one.
+1.5% a month (18% a year) on the **reducing balance**, repaid in equal daily instalments of ₹1,100 from
+settlements for 60 days: ₹1,000 of interest in total, ₹66,000 repaid. A 1% fee (₹650) is deducted at disbursal,
+so he receives ₹64,350. **APR = 30.4%**, the annualised rate on the cash actually received, fee included,
+solved as an internal rate of return (`plays.py → price_loan`). It's shown on the loan screen, as the
+Key Fact Statement in RBI's digital lending rules requires.
+*Why 30.4% and not 18%?* A fixed fee on a short loan counts heavily once annualised: ₹650 over 2 months.
 
 ### Scale
 **How does it scale to millions of merchants?**
@@ -226,14 +229,14 @@ few paise. Say "tiny compared to the cashback" rather than quoting an exact figu
 
 **What would you build next?**
 Voice replies on the Soundbox; real festival history per shop; more plays (stock-outs, UPI
-failure rates); pooled measurement across shops; an APR/KFS screen for loans.
+failure rates); pooled measurement across shops; a full Key Fact Statement and cooling-off period for loans.
 
 ## 8. Known weak spots (have an answer ready)
 
 - Fast-forward results are simulated (see section 6).
 - The control group is small for one shop.
 - The festival forecast is a simple average × uplift.
-- Loan pricing is flat, about 60% effective APR, with no APR shown yet.
+- The loan pricing is a demo assumption (1.5% a month, 1% fee), not a real partner's rate card.
 - The hourly chart compares with the **median** nearby shop, which is only as good as the number of nearby shops (3 salons for Glow).
 - The TTS voice depends on the laptop.
 - "₹7 per ₹1" is sales, not profit (see section 7).

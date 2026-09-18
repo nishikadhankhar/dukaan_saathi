@@ -188,10 +188,13 @@ def loan_quote(opp) -> dict:
     return {"partner": a["partner"], "amount": a["amount"], "tenure_days": a["tenure_days"],
             "monthly_rate_pct": a["monthly_rate_pct"], "processing_fee": a["processing_fee"],
             "total_repayable": a["total_repayable"], "daily_repayment": a["daily_repayment"],
+            "interest": a["interest"], "amount_received": a["amount_received"], "apr_pct": a["apr_pct"],
             "disclosures": [
                 f"Offered by {a['partner']}, a demo lending partner. Paytm is a distributor, not the lender.",
-                f"Interest {a['monthly_rate_pct']}% per month, flat on the full amount, "
-                f"plus a one-time processing fee of {inr(a['processing_fee'])}.",
+                f"Interest {a['monthly_rate_pct']}% per month on the reducing balance "
+                f"({inr(a['interest'])} in total), plus a {inr(a['processing_fee'])} processing fee "
+                f"deducted at disbursal, so you receive {inr(a['amount_received'])}. "
+                f"APR {a['apr_pct']}% including the fee.",
                 f"Repaid as {inr(a['daily_repayment'])} deducted from your daily settlements "
                 f"for {a['tenure_days']} days.",
                 "Nothing is applied for until you tick consent. No money moves without the lender's approval.",
