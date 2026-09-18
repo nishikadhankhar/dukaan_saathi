@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { api } from "./api";
+import { api, inr } from "./api";
 import Console from "./Console";
 import MerchantApp from "./MerchantApp";
 import Soundbox from "./Soundbox";
+import { Label } from "./ui";
 
 export default function App() {
   const [shops, setShops] = useState<any[]>([]);
@@ -23,87 +24,101 @@ export default function App() {
     api.health().then(setHealth);
   };
 
-  return (
-    <div className="min-h-screen text-slate-200">
-      <header className="flex flex-wrap items-center gap-3 border-b border-slate-800 px-5 py-3">
-        <div>
-          <div className="text-sm font-extrabold tracking-tight text-white">
-            Dukaan Saathi <span className="text-cyan-400">·</span>{" "}
-            <span className="font-medium text-slate-400">AI business partner for Paytm merchants</span>
-          </div>
-          <div className="text-[10px] text-slate-500">
-            prototype · {health ? `${health.transactions.toLocaleString()} simulated payments · copy via ${health.copy_backend}` : "…"}
-          </div>
-        </div>
+  const Seg = ({ items, value, onChange, small }: any) => (
+    <div className="flex rounded-xl bg-[#e6ebf3] p-0.5">
+      {items.map((it: any) => (
+        <button key={it.id} onClick={() => onChange(it.id)}
+          className={`rounded-[9px] px-3 py-1.5 text-[12px] font-bold tracking-tight transition ${
+            value === it.id ? "bg-white text-[#0b1b33] shadow-sm" : "text-[#6c7c94] hover:text-[#0b1b33]"
+          } ${small ? "px-2.5" : ""}`}>
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          {shops.map((s) => (
-            <button key={s.id} onClick={() => setMid(s.id)}
-              className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
-                mid === s.id ? "bg-cyan-500 text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>
-              {s.name}
+  return (
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-20 border-b border-[#e2e7ef] bg-white/85 backdrop-blur">
+        <div className="mx-auto flex max-w-[1460px] flex-wrap items-center gap-4 px-6 py-3">
+          <div className="flex items-center gap-2.5">
+            <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#002970] text-[13px] font-extrabold text-white">दु</div>
+            <div>
+              <div className="text-[14px] font-extrabold leading-tight tracking-tight text-[#0b1b33]">Dukaan Saathi</div>
+              <div className="text-[10px] font-semibold leading-tight text-[#8a98ad]">
+                Merchant Growth AI · prototype
+              </div>
+            </div>
+          </div>
+
+          <div className="ml-auto flex flex-wrap items-center gap-2.5">
+            <Seg items={shops.map((s) => ({ id: s.id, label: s.name.split(" ")[0] }))} value={mid} onChange={setMid} />
+            <Seg items={[{ id: "hi", label: "हिंदी" }, { id: "en", label: "EN" }]} value={lang} onChange={setLang} small />
+            <button onClick={() => setShowConsole((v) => !v)}
+              className="rounded-xl border border-[#e2e7ef] bg-white px-3 py-1.5 text-[12px] font-bold text-[#5b6b84] hover:bg-[#f7f9fc]">
+              {showConsole ? "Hide" : "Show"} internals
             </button>
-          ))}
-          <div className="mx-1 h-5 w-px bg-slate-700" />
-          {(["hi", "en"] as const).map((l) => (
-            <button key={l} onClick={() => setLang(l)}
-              className={`rounded-lg px-2.5 py-1.5 text-[11px] font-bold ${
-                lang === l ? "bg-slate-100 text-slate-900" : "bg-slate-800 text-slate-400"}`}>
-              {l === "hi" ? "हिंदी" : "EN"}
+            <button onClick={reset}
+              className="rounded-xl border border-[#e2e7ef] bg-white px-3 py-1.5 text-[12px] font-bold text-[#5b6b84] hover:bg-[#f7f9fc]">
+              Reset
             </button>
-          ))}
-          <button onClick={() => setShowConsole((v) => !v)}
-            className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-[11px] text-slate-300 hover:bg-slate-700">
-            {showConsole ? "Hide" : "Show"} under the hood
-          </button>
-          <button onClick={reset}
-            className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-[11px] text-slate-300 hover:bg-slate-700">
-            Reset demo
-          </button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1400px] gap-6 p-5 lg:grid-cols-[260px_400px_1fr]">
-        <section className="pt-6"><Soundbox briefing={home?.briefing} request={req} lang={lang} /></section>
-
-        <section>
-          <div className="mx-auto h-[720px] w-[380px] overflow-hidden rounded-[2.2rem] border-[10px] border-slate-800 bg-white shadow-2xl">
-            <MerchantApp key={mid + lang + nonce} mid={mid} lang={lang} onSpeak={say}
-              onNotify={setNotifs} onData={setHome} />
-          </div>
-          <p className="mx-auto mt-2 w-[380px] text-center text-[10px] text-slate-500">
-            The merchant's phone — Paytm for Business
-          </p>
+      <main className="mx-auto grid max-w-[1460px] items-start gap-8 px-6 py-8 lg:grid-cols-[236px_minmax(0,392px)_1fr]">
+        <section className="flex flex-col items-center">
+          <Label className="mb-3 self-start">The device on the counter</Label>
+          <Soundbox briefing={home?.briefing} request={req} lang={lang}
+            amount={home ? inr(home.summary.today_gmv) : null} />
         </section>
 
-        <section className="flex flex-col gap-4">
-          <div>
-            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              A customer's phone
+        <section>
+          <Label className="mb-3">The merchant's phone</Label>
+          <div className="relative mx-auto w-[392px] rounded-[46px] bg-[#0b1b33] p-[11px] elev-lg">
+            <div className="absolute -left-[3px] top-[130px] h-14 w-[3px] rounded-l-sm bg-[#25324a]" />
+            <div className="absolute -right-[3px] top-[110px] h-9 w-[3px] rounded-r-sm bg-[#25324a]" />
+            <div className="relative h-[772px] overflow-hidden rounded-[36px] bg-[#f4f6fa]">
+              <div className="absolute left-1/2 top-[7px] z-30 h-[26px] w-[104px] -translate-x-1/2 rounded-full bg-[#0b1b33]" />
+              <MerchantApp key={mid + lang + nonce} mid={mid} lang={lang} onSpeak={say}
+                onNotify={setNotifs} onData={setHome} />
             </div>
-            <div className="h-[230px] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/70 p-2.5 no-scrollbar">
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-6">
+          <div>
+            <Label className="mb-3">A customer's phone</Label>
+            <div className="h-[212px] overflow-y-auto rounded-2xl border border-[#e2e7ef] bg-white p-2.5 no-scrollbar elev">
               {notifs.length === 0 ? (
-                <div className="grid h-full place-items-center px-6 text-center text-[11px] text-slate-500">
-                  Approve an offer and it lands here, on the phones of the customers it targets.
+                <div className="grid h-full place-items-center px-8 text-center text-[11px] leading-relaxed text-[#8a98ad]">
+                  Approve an offer and it appears here — on the phones of the exact customers it targets.
                 </div>
               ) : notifs.map((n, i) => (
-                <div key={i} className="mb-1.5 rounded-xl bg-slate-800/70 p-2.5">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
-                    <span className="font-mono">{n.customer}</span><span>{n.when}</span>
+                <div key={i} className="mb-1.5 rounded-xl border border-[#eef1f6] bg-[#f9fbfe] p-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] font-semibold text-[#8a98ad]">{n.customer}</span>
+                    <span className="text-[9px] font-semibold text-[#8a98ad]">{n.when}</span>
                   </div>
-                  <div className="mt-1 text-[11px] leading-snug text-slate-100">
+                  <div className="mt-1 text-[11px] font-medium leading-snug text-[#2b3a52]">
                     {lang === "hi" ? n.text_hi : n.text_en}
                   </div>
                 </div>
               ))}
             </div>
           </div>
+
           {showConsole && (
-            <div className="min-h-0 flex-1">
-              <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Under the hood
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <Label>Under the hood</Label>
+                {health && (
+                  <span className="text-[10px] font-semibold text-[#8a98ad]">
+                    {health.transactions.toLocaleString("en-IN")} simulated payments
+                  </span>
+                )}
               </div>
-              <div className="h-[430px]"><Console key={mid + nonce} mid={mid} /></div>
+              <div className="h-[470px]"><Console key={mid + nonce} mid={mid} /></div>
             </div>
           )}
         </section>

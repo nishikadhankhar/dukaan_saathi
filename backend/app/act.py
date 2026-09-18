@@ -96,7 +96,9 @@ def approve(m: Merchant, opp, budget_cap: int | None = None) -> Campaign:
 def fast_forward(m: Merchant, c: Campaign, days: int = FORWARD_DAYS) -> dict:
     """Play the next `days` forward for both groups and measure the difference."""
     p = RESPONSE[c.type]
-    rng = np.random.default_rng(abs(hash(c.id + "ff")) % (2**32))
+    # seeded by shop+play, not campaign id, so the same demo gives the same
+    # numbers every time -- rehearsable, and nothing to re-roll on stage
+    rng = np.random.default_rng(abs(hash(c.merchant_id + c.play + "ff")) % (2**32))
     recent = m._tx[m._tx.day >= m._tx.day.max() - 29].amount.to_numpy()
     if len(recent) < 20:
         recent = m._tx.amount.to_numpy()

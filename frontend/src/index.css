@@ -1,8 +1,39 @@
 @import "tailwindcss";
 
-:root { color-scheme: dark; }
-body { margin: 0; background: #070b14; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+@theme {
+  --color-ink: #0b1b33;
+  --color-navy: #002970;
+  --color-navy-600: #06337f;
+  --color-sky: #00baf2;
+  --color-canvas: #eef1f6;
+  --color-line: #e2e7ef;
+  --color-muted: #5b6b84;
+  --font-sans: "Plus Jakarta Sans", "Mukta", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root { color-scheme: light; }
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Devanagari gets its own face so Hindi looks deliberate, not fallback */
+:lang(hi), .deva { font-family: "Mukta", "Plus Jakarta Sans", sans-serif; }
+
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-@keyframes pulse-ring { 0% { opacity:.9; transform:scale(1) } 70% { opacity:0; transform:scale(1.8) } 100% { opacity:0 } }
-.ring-live::after { content:""; position:absolute; inset:0; border-radius:9999px; background:#22d3ee; animation:pulse-ring 1.4s ease-out infinite; }
+
+/* Soundbox speaking indicator */
+@keyframes wave { 0%,100% { transform: scaleY(.32) } 50% { transform: scaleY(1) } }
+.wave > i { display:block; width:3px; height:20px; border-radius:2px; background:#5ad8ff; transform-origin:center;
+            animation: wave .9s ease-in-out infinite; }
+
+.elev { box-shadow: 0 1px 2px rgba(11,27,51,.06), 0 8px 24px -12px rgba(11,27,51,.18); }
+.elev-lg { box-shadow: 0 2px 4px rgba(11,27,51,.06), 0 24px 48px -20px rgba(11,27,51,.35); }
