@@ -102,17 +102,28 @@ The world is deterministic — same seed, same shop, same 74 lapsed customers ev
 
 ## The AI layer
 
-Three backends, tried in order, so the demo cannot hard-fail on stage:
+Backends, tried in order, so the demo cannot hard-fail on stage:
 
-1. **n8n webhook** — set `N8N_WEBHOOK_URL`, and n8n calls Claude with its own AI credits
-2. **Anthropic API** — set `ANTHROPIC_API_KEY`, model `claude-opus-5`
-3. **Templates** — always available
+1. **n8n webhook** — set `N8N_WEBHOOK_URL`, and n8n calls a model with its own AI credits
+2. **Gemini API** — set `GEMINI_API_KEY` (free key from aistudio.google.com/apikey); tries
+   `gemini-3.8-flash`, then `gemini-flash-latest`, then `gemini-3.6-flash`
+3. **Anthropic API** — set `ANTHROPIC_API_KEY`, model `claude-opus-5`
+4. **Templates** — always available
+
+Keys go in a git-ignored `.env` (`backend/.env`, `.env` or `.claude/.env`), never in code.
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...     # or
-export N8N_WEBHOOK_URL=https://....app.n8n.cloud/webhook/dukaan-copy
+echo "GEMINI_API_KEY=..." > backend/.env
+cd backend && python3 -m app.warm     # pre-generate copy for the 4 demo shops
 ./run.sh
 ```
+
+`app.warm` stores the checked copy in `backend/.copy_cache.json`, keyed by the exact
+evidence. The server reuses it instantly, so the stage never waits on a busy free-tier
+API. Action buttons always use fixed labels, since they name what the button does.
+
+**Demo date.** The simulated world is pinned to 19 Sep 2026 so every number matches
+rehearsal. `DEMO_DATE=today` follows the real calendar; `DEMO_DATE=2026-10-01` picks a day.
 
 The header and **Under the hood** always show which backend produced the copy.
 
@@ -140,7 +151,8 @@ backend/app/
   world.py   synthetic neighbourhood and the planted scenarios
   sense.py   metrics, shop comparisons, lapsed regulars, forecast, provenance
   plays.py   the detectors and the offers they unlock
-  llm.py     copy generation, three backends, number check, templates
+  llm.py     copy generation (n8n / Gemini / Claude / templates), number check, cache
+  warm.py    pre-generates AI copy for the demo shops
   act.py     campaigns, control group, fast-forward, results, loan quote
   main.py    the API
 frontend/src/

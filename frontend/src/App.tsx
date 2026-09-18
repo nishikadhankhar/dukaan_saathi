@@ -81,7 +81,7 @@ export default function App() {
             <div className="relative h-[772px] overflow-hidden rounded-[36px] bg-[#f4f6fa]">
               <div className="absolute left-1/2 top-[7px] z-30 h-[26px] w-[104px] -translate-x-1/2 rounded-full bg-[#0b1b33]" />
               <MerchantApp key={mid + lang + nonce} mid={mid} lang={lang} onSpeak={say}
-                onNotify={setNotifs} onData={setHome} />
+                onNotify={setNotifs} onData={setHome} onLang={setLang} />
             </div>
           </div>
         </section>

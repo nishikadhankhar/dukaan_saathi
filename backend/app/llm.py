@@ -5,10 +5,11 @@ numbers the detectors already computed and may only rank, explain and translate
 them. Everything it writes is then checked: any number that is not in the
 evidence gets the whole card rejected and replaced with a template.
 
-Three backends, tried in this order:
-  1. n8n webhook   (N8N_WEBHOOK_URL) -- n8n calls Claude with its own credits
-  2. Anthropic API (ANTHROPIC_API_KEY)
-  3. templates     -- always available, so a live demo cannot hard-fail
+Backends, tried in this order:
+  1. n8n webhook   (N8N_WEBHOOK_URL) -- n8n calls a model with its own credits
+  2. Gemini API    (GEMINI_API_KEY)
+  3. Anthropic API (ANTHROPIC_API_KEY)
+  4. templates     -- always available, so a live demo cannot hard-fail
 """
 from __future__ import annotations
 
@@ -16,13 +17,24 @@ import json
 import os
 import re
 import time
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
 
 from .sense import inr
 
+try:                                   # keys live in a git-ignored .env, never in code
+    from dotenv import load_dotenv
+    _root = Path(__file__).resolve().parents[2]
+    for _f in (_root / "backend" / ".env", _root / ".env", _root / ".claude" / ".env"):
+        load_dotenv(_f, override=False)
+except ImportError:
+    pass
+
 MODEL = "claude-opus-5"
+GEMINI_MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.6-flash"]   # lite models write poor Hindi
+CACHE = Path(__file__).resolve().parents[1] / ".copy_cache.json"
 
 STATUS: dict[str, Any] = {"backend": "templates", "model": None, "latency_ms": None,
                           "validator": None, "prompt": None, "raw": None, "error": None}
@@ -65,6 +77,12 @@ STYLE
 - action: at most 5 words, an imperative (e.g. "Send Rs 20 cashback").
 - soundbox: at most 25 words, written to be spoken aloud.
 - briefing: the shop's evening summary, at most 35 words, spoken aloud.
+- Money: copy the rupee string from "display" exactly (e.g. ₹82,938). Never write a
+  bare amount like 82938 and never write "Rs" in Hindi.
+- Times of day: use the "display" string (e.g. 2 PM–5 PM), never "hour 14".
+- Never mention a JSON field name (no "pct", "hour", "rate", "share").
+- "nearby_*" numbers are the average of similar shops in the area, NOT the new shop.
+- Every *_hi field must be in Devanagari script. Every *_en field in English.
 Rank the plays with the most valuable and most urgent first."""
 
 
@@ -125,7 +143,7 @@ def template_card(play: str, ev: dict) -> dict:
             headline_en=f"{g('lapsed_regulars')} regulars stopped coming {g('weeks_since_last_visit')} weeks ago",
             why_hi=f"पहले ये महीने में {g('visits_per_month_before')} बार आते थे और हर महीने लगभग {inr(g('monthly_value_at_risk'))} की खरीद करते थे।" + drift_hi,
             why_en=f"They used to visit {g('visits_per_month_before')} times a month and spent about {inr(g('monthly_value_at_risk'))} every month." + drift_en,
-            action_hi=f"₹{g('cashback')} कैशबैक भेजें", action_en=f"Send Rs {g('cashback')} cashback",
+            action_hi=f"₹{g('cashback')} कैशबैक भेजें", action_en=f"Send ₹{g('cashback')} cashback",
             soundbox_hi=f"{g('lapsed_regulars')} पुराने ग्राहक {g('weeks_since_last_visit')} हफ्ते से नहीं आए। ऐप खोलकर ₹{g('cashback')} कैशबैक भेजिए।",
             soundbox_en=f"{g('lapsed_regulars')} regular customers have not come for {g('weeks_since_last_visit')} weeks. Open the app to send Rs {g('cashback')} cashback.")
     if play == "dead_hours":
@@ -140,10 +158,10 @@ def template_card(play: str, ev: dict) -> dict:
     if play == "low_ticket":
         return dict(
             headline_hi=f"आपका औसत बिल ₹{g('your_median_bill')} है",
-            headline_en=f"Your average bill is Rs {g('your_median_bill')}",
+            headline_en=f"Your average bill is ₹{g('your_median_bill')}",
             why_hi=f"आसपास की {g('nearby_shops_compared')} दुकानों का औसत बिल ₹{g('nearby_median_bill')} है। ग्राहक आते हैं पर कम खरीदते हैं।",
-            why_en=f"{g('nearby_shops_compared')} shops nearby average Rs {g('nearby_median_bill')}. Customers come, but buy less.",
-            action_hi=f"₹{g('spend_target')} पर ₹{g('cashback')} कैशबैक", action_en=f"Rs {g('cashback')} back on Rs {g('spend_target')}",
+            why_en=f"{g('nearby_shops_compared')} shops nearby average ₹{g('nearby_median_bill')}. Customers come, but buy less.",
+            action_hi=f"₹{g('spend_target')} पर ₹{g('cashback')} कैशबैक", action_en=f"₹{g('cashback')} back on ₹{g('spend_target')}",
             soundbox_hi=f"आपका औसत बिल ₹{g('your_median_bill')} है, आसपास ₹{g('nearby_median_bill')}। ₹{g('spend_target')} पर ₹{g('cashback')} कैशबैक चलाइए।",
             soundbox_en=f"Your average bill is Rs {g('your_median_bill')} against Rs {g('nearby_median_bill')} nearby. Try Rs {g('cashback')} back on Rs {g('spend_target')}.")
     if play == "cash_gap":
@@ -179,13 +197,50 @@ def _templates(opps, summary) -> CardSet:
 # --------------------------------------------------------------------------- #
 #  Model backends
 # --------------------------------------------------------------------------- #
-def _payload(merchant: dict, summary: dict, opps) -> str:
-    return json.dumps({
+_MONEY = {"avg_bill", "monthly_value_at_risk", "cashback", "min_bill", "budget_cap",
+          "est_extra_sales_month", "est_extra_sales", "daily_sales", "extra_stock_needed",
+          "weekly_margin", "loan_amount", "processing_fee", "total_repayable", "daily_repayment",
+          "weekly_sales", "weekly_potential", "max_discount", "your_median_bill",
+          "nearby_median_bill", "spend_target"}
+
+
+def _clock(h: int) -> str:
+    return f"{(h - 1) % 12 + 1} {'AM' if h < 12 else 'PM'}"
+
+
+def _display(ev: dict) -> dict:
+    """Ready-to-print strings, so the model copies formatting instead of inventing it."""
+    d = {k: inr(v) for k, v in ev.items() if k in _MONEY}
+    if "quiet_from_hour" in ev:
+        d["quiet_hours"] = f"{_clock(ev['quiet_from_hour'])}–{_clock(ev['quiet_to_hour'])}"
+    return d
+
+
+def _payload(merchant: dict, summary: dict, opps) -> dict:
+    return {
         "shop": {"name": merchant["name"], "type": merchant["category"]},
         "today": {"sales": summary["today_gmv"], "customers": summary["today_customers"],
-                  "change_vs_yesterday_pct": summary["change_pct"]},
-        "plays": [{"play": o.play, "evidence": o.evidence} for o in opps],
-    }, ensure_ascii=False, indent=1)
+                  "change_vs_yesterday_pct": summary["change_pct"],
+                  "display": {"sales": inr(summary["today_gmv"])}},
+        "plays": [{"play": o.play, "evidence": o.evidence, "display": _display(o.evidence)}
+                  for o in opps],
+    }
+
+
+def _cache_get(key: str) -> dict | None:
+    try:
+        return json.loads(CACHE.read_text()).get(key)
+    except (OSError, ValueError):
+        return None
+
+
+def _cache_put(key: str, value: dict) -> None:
+    try:
+        data = json.loads(CACHE.read_text()) if CACHE.exists() else {}
+    except ValueError:
+        data = {}
+    data[key] = value
+    CACHE.write_text(json.dumps(data, ensure_ascii=False))
 
 
 def _via_anthropic(system: str, prompt: str) -> CardSet:
@@ -199,6 +254,27 @@ def _via_anthropic(system: str, prompt: str) -> CardSet:
     except Exception:
         r = client.messages.parse(**kwargs)
     return r.parsed_output
+
+
+def _via_gemini(system: str, prompt: str) -> tuple[CardSet, str]:
+    from google import genai
+    from google.genai import types
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    cfg = types.GenerateContentConfig(system_instruction=system, temperature=0.3,
+                                      response_mime_type="application/json",
+                                      response_schema=CardSet)
+    errors = []
+    attempts = [m for _ in range(int(os.environ.get("GEMINI_ROUNDS", "1"))) for m in GEMINI_MODELS]
+    for i, model in enumerate(attempts):   # next model if one is rate-limited or unavailable
+        if i and i % len(GEMINI_MODELS) == 0:
+            time.sleep(8)                  # whole round was busy: back off, then go again
+        try:
+            r = client.models.generate_content(model=model, contents=prompt, config=cfg)
+            out = r.parsed if isinstance(r.parsed, CardSet) else CardSet.model_validate_json(r.text)
+            return out, model
+        except Exception as e:         # noqa: BLE001
+            errors.append(f"{model}: {type(e).__name__}: {str(e)[:160]}")
+    raise RuntimeError(" | ".join(errors))
 
 
 def _via_n8n(system: str, prompt: str) -> CardSet:
@@ -226,19 +302,29 @@ def write_copy(merchant: dict, summary: dict, opps) -> CardSet:
         STATUS.update(backend="templates", validator=None, error=None)
         return CardSet(cards=[], briefing_hi=hi, briefing_en=en)
 
-    prompt = _payload(merchant, summary, opps)
-    backend, result, err = "templates", None, None
+    payload = _payload(merchant, summary, opps)
+    prompt = json.dumps(payload, ensure_ascii=False, indent=1)
+    backend, result, err, model, hit = "templates", None, None, None, None
+    import hashlib
+    key = hashlib.sha256((SYSTEM + prompt).encode()).hexdigest()[:16]
     t0 = time.time()
     try:
-        if os.environ.get("N8N_WEBHOOK_URL"):
+        hit = _cache_get(key)
+        if hit:                  # same evidence as a previous run: reuse, no API call
+            backend, model = hit["backend"], hit["model"]
+            result = CardSet.model_validate(hit["cards"])
+        elif os.environ.get("N8N_WEBHOOK_URL"):
             backend, result = "n8n", _via_n8n(SYSTEM, prompt)
+        elif os.environ.get("GEMINI_API_KEY"):
+            backend = "gemini"
+            result, model = _via_gemini(SYSTEM, prompt)
         elif os.environ.get("ANTHROPIC_API_KEY"):
-            backend, result = "anthropic", _via_anthropic(SYSTEM, prompt)
+            backend, result, model = "anthropic", _via_anthropic(SYSTEM, prompt), MODEL
     except Exception as e:                                  # noqa: BLE001 - demo must not die
         err, backend, result = f"{type(e).__name__}: {e}", "templates", None
     latency = int((time.time() - t0) * 1000)
 
-    allowed = allowed_numbers({o.play: o.evidence for o in opps}, summary)
+    allowed = allowed_numbers(payload, summary)
     verdict = None
     if result is not None:
         texts = {f"{c.play}.{k}": v for c in result.cards
@@ -248,6 +334,14 @@ def write_copy(merchant: dict, summary: dict, opps) -> CardSet:
         if not verdict["ok"]:                               # model used a number we cannot back
             err = f"rejected {len(verdict['ungrounded'])} ungrounded number(s)"
             result, backend = None, "templates"
+        else:
+            # Action labels name what the button does, so they stay fixed, not model-written.
+            for c in result.cards:
+                ev = next(o.evidence for o in opps if o.play == c.play)
+                t = template_card(c.play, ev)
+                c.action_hi, c.action_en = t["action_hi"], t["action_en"]
+            if not hit:
+                _cache_put(key, {"backend": backend, "model": model, "cards": result.model_dump()})
 
     if result is None:
         result = _templates(opps, summary)
@@ -257,7 +351,7 @@ def write_copy(merchant: dict, summary: dict, opps) -> CardSet:
 
     by_play = {c.play: c for c in result.cards}
     result.cards = [by_play[o.play] for o in opps if o.play in by_play]
-    STATUS.update(backend=backend, model=MODEL if backend != "templates" else None,
+    STATUS.update(backend=backend, model=model if backend != "templates" else None,
                   latency_ms=latency if backend != "templates" else None,
                   validator=verdict, prompt=prompt,
                   raw=result.model_dump(), error=err)

@@ -7,6 +7,7 @@ explains and translates what is in `evidence`.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -66,7 +67,9 @@ def _winback(m: Merchant):
     visits_before = round(float(lapsed.visits.mean()) / 2.0, 1)   # 60-day window -> per month
     repeat = m.cohort_repeat_rate()
 
-    cashback, min_bill, valid_days = 20, 150, 7
+    # offer sized to the shop: ₹20 on ₹150 for a kirana, ₹5 on ₹30 for a chai stall
+    min_bill = min(150, int(math.ceil(avg_bill * 1.25 / 10.0) * 10))
+    cashback, valid_days = (20 if avg_bill >= 100 else 5), 7
     budget_cap = n * cashback
     # what they stand to recover: a share of the monthly spend now walking away
     est_return = int(ASSUMED_WINBACK_UPLIFT * monthly_at_risk)
@@ -204,7 +207,7 @@ def _cash_gap(m: Merchant):
         return None, check
 
     from .world import FESTIVAL_NAME
-    amount = int(round(need / 5000.0) * 5000)
+    amount = int(math.ceil(need / 5000.0) * 5000)   # never offer less than the need
     tenure_days, monthly_rate, fee_pct = 60, 1.5, 1.0
     interest = int(amount * monthly_rate / 100 * (tenure_days / 30))
     fee = int(amount * fee_pct / 100)

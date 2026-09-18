@@ -40,7 +40,19 @@ const L = {
         received: (v: string) => `Paytm पर ${v} प्राप्त हुए`, playNow: "आज की रिपोर्ट अभी सुनाएँ",
         proofMasked: (a: number, b: number) => `नाम और नंबर छिपे हैं · ${a} of ${b} दिखा रहे हैं`,
         cols: ["ग्राहक", "विज़िट", "आख़िरी बार", "औसत बिल"], source: "स्रोत: आपके Paytm पेमेंट रिकॉर्ड · यही आँकड़े कार्ड पर दिखे हैं",
-        daysAgo: (s: string) => s.replace(" days ago", " दिन पहले") },
+        daysAgo: (s: string) => s.replace(" days ago", " दिन पहले"),
+        payments: "आज के भुगतान", paymentsSub: (n: number, v: string) => `${n} भुगतान · कुल ${v}`, announce: "सुनाएँ",
+        offersT: "ऑफर", noRunning: "अभी कोई ऑफर नहीं चल रहा। नीचे से एक शुरू करें।", suggested: "दुकान साथी के सुझाव",
+        statusLive: "चालू", statusDone: "नतीजा तैयार", sentTo: (a: number, b: number) => `${a} को भेजा · ${b} कंट्रोल`,
+        reportsT: "रिपोर्ट", last30: "पिछले 30 दिन की बिक्री", week: "इस हफ्ते", vsLast: "पिछले हफ्ते से",
+        avgBill: "औसत बिल (30 दिन)", repeatRate: "दोबारा आने वाले ग्राहक", todayPay: "आज के भुगतान", nearbyRepeat: (v: number) => `आसपास ${v}%`,
+        speakReport: "रिपोर्ट साउंडबॉक्स पर सुनें",
+        qrT: "पेमेंट लें", qrSub: "ग्राहक किसी भी UPI ऐप से स्कैन करें", simulate: "डेमो: ग्राहक ने पेमेंट किया",
+        simNote: "साउंडबॉक्स तुरंत रकम बोलेगा", lastPaid: "अभी मिला",
+        noLoanT: "अभी लोन की ज़रूरत नहीं", noLoanS: "आपकी बिक्री और स्टॉक का हिसाब ठीक है। त्योहार या बड़े ऑर्डर से पहले पैसे कम पड़ते दिखे तो दुकान साथी साउंडबॉक्स पर बताएगा।",
+        profileT: "प्रोफ़ाइल", shopId: "मर्चेंट ID", type: "दुकान का प्रकार", language: "भाषा", soundboxRow: "साउंडबॉक्स सेटिंग",
+        dataNote: "यह डेमो दुकान है। आँकड़े सिम्युलेटेड हैं, पर ढाँचा असली Paytm पेमेंट रिकॉर्ड जैसा है।",
+        cat: { kirana: "किराना", salon: "सैलून", chai: "चाय की दुकान", pharmacy: "मेडिकल", restaurant: "रेस्टोरेंट" } as any },
   en: { collection: "Today's collection", pay: "payments", cust: "customers", bill: "avg bill", settle: "Settlement: tonight, 10 PM",
         history: "History", services: ["Soundbox", "Loans", "Offers", "Reports"], saathi: "Dukaan Saathi · today's opportunities",
         perMonth: "/ month", partnerLoan: "partner loan", running: "Running offers", nav: ["Home", "Payments", "Business", "Profile"],
@@ -72,7 +84,19 @@ const L = {
         received: (v: string) => `Received ${v} on Paytm`, playNow: "Play today's report now",
         proofMasked: (a: number, b: number) => `Names and numbers hidden · showing ${a} of ${b}`,
         cols: ["Customer", "Visits", "Last seen", "Avg bill"], source: "Source: your Paytm payment records — the same figures shown on the card",
-        daysAgo: (s: string) => s },
+        daysAgo: (s: string) => s,
+        payments: "Today's payments", paymentsSub: (n: number, v: string) => `${n} payments · ${v} total`, announce: "Announce",
+        offersT: "Offers", noRunning: "No offer running yet. Start one below.", suggested: "Suggested by Dukaan Saathi",
+        statusLive: "Running", statusDone: "Result ready", sentTo: (a: number, b: number) => `sent to ${a} · ${b} control`,
+        reportsT: "Reports", last30: "Sales, last 30 days", week: "This week", vsLast: "vs last week",
+        avgBill: "Avg bill (30 days)", repeatRate: "Repeat customers", todayPay: "Payments today", nearbyRepeat: (v: number) => `nearby ${v}%`,
+        speakReport: "Play report on the Soundbox",
+        qrT: "Receive payment", qrSub: "Customers scan with any UPI app", simulate: "Demo: a customer pays",
+        simNote: "The Soundbox announces the amount instantly", lastPaid: "Just received",
+        noLoanT: "No loan needed right now", noLoanS: "Your sales cover your stock. If a festival or big order looks likely to leave you short, Dukaan Saathi will say so on the Soundbox.",
+        profileT: "Profile", shopId: "Merchant ID", type: "Shop type", language: "Language", soundboxRow: "Soundbox settings",
+        dataNote: "This is a demo shop. The figures are simulated but shaped exactly like Paytm payment records.",
+        cat: { kirana: "Kirana", salon: "Salon", chai: "Tea stall", pharmacy: "Pharmacy", restaurant: "Restaurant" } as any },
 };
 
 const h12 = (h: number) => (h % 12) || 12;
@@ -114,7 +138,7 @@ function offerLine(play: string, e: any, lang: string) {
 const ICON_FOR: any = { winback: ["users", C.skyL, C.navy], dead_hours: ["clock", C.skyL, C.navy],
                         low_ticket: ["tag", C.skyL, C.navy], cash_gap: ["loan", "#FFFAEB", "#B54708"] };
 
-export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, onData }: any) {
+export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, onData, onLang }: any) {
   const t = L[lang];
   const [home, setHome] = useState<any>(null);
   const [screen, setScreen] = useState("home");
@@ -130,6 +154,8 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
   const [recent, setRecent] = useState<any[]>([]);
   const [toggles, setToggles] = useState([true, true, true]);
   const [busy, setBusy] = useState(false);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [paid, setPaid] = useState<any>(null);
 
   useEffect(() => {
     setScreen("home"); setOpp(null); setCamp(null); setResult(null); setApplied(false); setConsent(false);
@@ -150,11 +176,34 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
     const r = await api.approve(mid, opp.play);
     setCamp(r.campaign); setNotes(r.notifications); onCampaign?.(r.campaign); onNotify?.(r.notifications);
     setConfirm(false); setScreen("sent"); setBusy(false);
+    api.home(mid, lang).then(setHome);
+  };
+  const go = (sc: string) => {
+    setScreen(sc);
+    if (sc === "payments" && !payments.length) api.recent(mid, 40).then(setPayments);
+  };
+  const openCampaign = async (c: any) => {
+    if (camp?.id === c.id) { setScreen(result ? "result" : "sent"); return; }
+    const d = await api.campaign(c.id);
+    setCamp(d.campaign); setNotes(d.notifications);
+    if (d.campaign.status === "done") { setResult(await api.fastForward(c.id, lang)); setScreen("result"); }
+    else { setResult(null); setScreen("sent"); }
+  };
+  const simulatePay = () => {
+    const pool = [20, 45, 60, 85, 110, 140, 180, 230, 260, 320, 450];
+    const amount = pool[Math.floor(Math.random() * pool.length)];
+    const now = new Date();
+    const time = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    setPaid({ amount, time });
+    setRecent((r) => [{ time, amount }, ...r]);
+    setPayments((r) => (r.length ? [{ time, amount }, ...r] : r));
+    onSpeak?.(t.received(inr(amount)));
   };
   const doForward = async () => {
     setBusy(true);
     const r = await api.fastForward(camp.id, lang);
     setResult(r); setScreen("result"); setBusy(false); onSpeak?.(r.speech);
+    api.home(mid, lang).then(setHome);
   };
 
   // ---------- shared chrome ----------
@@ -188,6 +237,51 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
     <span className="deva tnum rounded-md px-2 py-0.5 text-[11px] font-extrabold" style={{ background: bg, color: fg }}>{children}</span>
   );
 
+  const Nav = () => (
+    <div className="shrink-0 border-t border-[#E8EDF3] bg-white pb-2 pt-2">
+      <div className="flex items-center justify-between px-5">
+        {[["home", t.nav[0], "home"], ["clock", t.nav[1], "payments"], ["qr", "Scan QR", "qr"], ["briefcase", t.nav[2], "reports"], ["user", t.nav[3], "profile"]].map(([ic, label, sc]: any) => {
+          const on = screen === sc;
+          return ic === "qr" ? (
+            <button key={ic} onClick={() => go(sc)} className="flex flex-col items-center gap-[3px]">
+              <div className="grid h-[52px] w-[52px] place-items-center rounded-full bg-[#00BAF2] shadow-[0_6px_14px_-4px_rgba(0,186,242,.55)]">
+                <Icon name="qr" size={24} color="#fff" />
+              </div>
+              <span className="text-[10px] font-bold text-[#002E6E]">{label}</span>
+            </button>
+          ) : (
+            <button key={ic} onClick={() => go(sc)} className="flex w-[52px] flex-col items-center gap-1">
+              <Icon name={ic} size={22} color={on ? C.navy : "#98A2B3"} stroke={on ? 2.2 : 1.8} />
+              <span className={`deva text-[10.5px] ${on ? "font-bold text-[#002E6E]" : "font-semibold text-[#98A2B3]"}`}>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="mx-auto mt-2 h-[5px] w-[134px] rounded-full bg-[#101828]" />
+    </div>
+  );
+  const CampRow = ({ c }: any) => {
+    const o = home.opportunities.find((x: any) => x.play === c.play);
+    const [ic] = ICON_FOR[c.play] || ICON_FOR.winback;
+    const done = c.status === "done" || (camp?.id === c.id && result);
+    return (
+      <button onClick={() => openCampaign(c)} className="flex w-full items-center gap-2.5 rounded-2xl border border-[#E8EDF3] bg-white px-3.5 py-3 text-left hover:border-[#9ADCF3]">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[#E5F7FE]"><Icon name={ic} size={18} color={C.navy} /></div>
+        <div className="min-w-0 flex-1">
+          <div className="deva truncate text-[13.5px] font-bold">{o?.action_label || c.play}</div>
+          <div className="deva tnum text-[11.5px] font-medium text-[#667085]">{t.sentTo(c.sent_to, c.held_back)}</div>
+        </div>
+        <Pill bg={done ? "#ECFDF3" : C.skyL} fg={done ? "#067647" : C.navy}>{done ? t.statusDone : t.statusLive}</Pill>
+      </button>
+    );
+  };
+  const Row = ({ label, value, onClick }: any) => (
+    <button onClick={onClick} disabled={!onClick} className="flex w-full items-center justify-between px-3.5 py-3 text-left">
+      <span className="deva text-[13.5px] font-semibold text-[#344054]">{label}</span>
+      <span className="deva flex items-center gap-1 text-[13px] font-bold text-[#101828]">{value}{onClick && <Icon name="chevron" size={16} color="#98A2B3" />}</span>
+    </button>
+  );
+
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-[#F5F7FA] text-[#101828]">
       <Status />
@@ -200,8 +294,11 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
               <div className="text-[22px] font-extrabold tracking-[-0.03em]"><span className="text-[#002E6E]">pay</span><span className="text-[#00BAF2]">tm</span></div>
               <div className="mt-0.5 text-[10.5px] font-semibold text-[#667085]">for Business</div>
             </div>
-            <Icon name="bell" size={22} color={C.ink} />
-            <div className="grid h-[34px] w-[34px] place-items-center rounded-full bg-[#E5F7FE] text-[14px] font-extrabold text-[#002E6E]">{s.name[0]}</div>
+            <button onClick={() => go("soundbox")} className="relative grid h-9 w-9 place-items-center rounded-full hover:bg-[#F2F4F7]">
+              <Icon name="bell" size={22} color={C.ink} />
+              <span className="absolute right-[7px] top-[6px] h-2 w-2 rounded-full border border-white bg-[#F04438]" />
+            </button>
+            <button onClick={() => go("profile")} className="grid h-[34px] w-[34px] place-items-center rounded-full bg-[#E5F7FE] text-[14px] font-extrabold text-[#002E6E]">{s.name[0]}</button>
           </div>
 
           <div className="flex-1 space-y-3.5 overflow-y-auto px-4 pb-4 pt-3 no-scrollbar">
@@ -219,15 +316,15 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
               <div className="my-3 h-px bg-[#EEF2F6]" />
               <div className="flex items-center justify-between">
                 <span className="deva text-[12px] font-medium text-[#667085]">{t.settle}</span>
-                <span className="text-[12.5px] font-bold text-[#00A3DB]">{t.history} ›</span>
+                <button onClick={() => go("payments")} className="text-[12.5px] font-bold text-[#00A3DB]">{t.history} ›</button>
               </div>
             </Card>
 
             <Card className="flex justify-between px-2.5 pb-3 pt-3.5">
               {[["soundbox", () => setScreen("soundbox")],
-                ["loan", () => { const o = home.opportunities.find((x: any) => x.kind === "loan"); o && openOpp(o.play); }],
-                ["tag", null], ["chart", null]].map(([ic, fn]: any, i: number) => (
-                <button key={ic} onClick={fn || undefined} className={`flex w-[80px] flex-col items-center gap-[7px] ${fn ? "" : "cursor-default"}`}>
+                ["loan", () => { const o = home.opportunities.find((x: any) => x.kind === "loan"); o ? openOpp(o.play) : go("noloan"); }],
+                ["tag", () => go("offers")], ["chart", () => go("reports")]].map(([ic, fn]: any, i: number) => (
+                <button key={ic} onClick={fn} className="flex w-[80px] flex-col items-center gap-[7px]">
                   <div className="relative grid h-[50px] w-[50px] place-items-center rounded-[14px] bg-[#E5F7FE]">
                     <Icon name={ic} size={24} color={C.navy} stroke={1.8} />
                     {i === 0 && <span className="absolute -right-0.5 -top-0.5 h-[11px] w-[11px] rounded-full border-2 border-white bg-[#12B76A]" />}
@@ -270,35 +367,12 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
             {home.campaigns.length > 0 && (
               <>
                 <div className="deva px-0.5 pt-1 text-[14px] font-extrabold">{t.running}</div>
-                {home.campaigns.map((c: any) => (
-                  <Card key={c.id} className="flex items-center justify-between px-3.5 py-3">
-                    <div className="tnum text-[12.5px] font-bold">{c.id} <span className="font-medium text-[#667085]">· {c.sent_to} / {c.held_back}</span></div>
-                    <Pill bg={c.status === "done" ? "#ECFDF3" : C.skyL} fg={c.status === "done" ? "#067647" : C.navy}>{c.status}</Pill>
-                  </Card>
-                ))}
+                {home.campaigns.map((c: any) => <CampRow key={c.id} c={c} />)}
               </>
             )}
           </div>
 
-          <div className="shrink-0 border-t border-[#E8EDF3] bg-white pb-2 pt-2">
-            <div className="flex items-center justify-between px-5">
-              {[["home", t.nav[0], true], ["clock", t.nav[1]], ["qr", "Scan QR"], ["briefcase", t.nav[2]], ["user", t.nav[3]]].map(([ic, label, on]: any) =>
-                ic === "qr" ? (
-                  <div key={ic} className="flex flex-col items-center gap-[3px]">
-                    <div className="grid h-[52px] w-[52px] place-items-center rounded-full bg-[#00BAF2] shadow-[0_6px_14px_-4px_rgba(0,186,242,.55)]">
-                      <Icon name="qr" size={24} color="#fff" />
-                    </div>
-                    <span className="text-[10px] font-bold text-[#002E6E]">{label}</span>
-                  </div>
-                ) : (
-                  <div key={ic} className="flex flex-col items-center gap-1">
-                    <Icon name={ic} size={22} color={on ? C.navy : "#98A2B3"} stroke={on ? 2.2 : 1.8} />
-                    <span className={`deva text-[10.5px] ${on ? "font-bold text-[#002E6E]" : "font-semibold text-[#98A2B3]"}`}>{label}</span>
-                  </div>
-                ))}
-            </div>
-            <div className="mx-auto mt-2 h-[5px] w-[134px] rounded-full bg-[#101828]" />
-          </div>
+          <Nav />
         </>
       )}
 
@@ -576,6 +650,161 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
         </>
       )}
 
+      {/* ------------------------------ PAYMENTS ------------------------------ */}
+      {screen === "payments" && (
+        <>
+          <Bar title={t.payments} />
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4 no-scrollbar">
+            <Card className="px-4 py-3.5">
+              <div className="tnum text-[26px] font-extrabold text-[#002E6E]">{inr(s.today_gmv)}</div>
+              <div className="deva tnum text-[12.5px] font-medium text-[#667085]">{t.paymentsSub(s.today_txns, inr(s.today_gmv))}</div>
+            </Card>
+            <Card className="divide-y divide-[#EEF2F6]">
+              {(payments.length ? payments : recent).map((p: any, i: number) => (
+                <div key={i} className="flex items-center gap-3 px-3.5 py-2.5">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#ECFDF3]"><Icon name="check" size={16} color="#12B76A" stroke={2.6} /></div>
+                  <div className="flex-1"><div className="tnum text-[14px] font-bold">{inr(p.amount)}</div><div className="deva tnum text-[11.5px] text-[#667085]">UPI · {p.time}</div></div>
+                  <button onClick={() => onSpeak?.(t.received(inr(p.amount)))} className="deva flex items-center gap-1 rounded-full bg-[#E5F7FE] px-2.5 py-1 text-[11.5px] font-bold text-[#0086B3]">
+                    <Icon name="volume" size={13} color="#0086B3" /> {t.announce}</button>
+                </div>
+              ))}
+            </Card>
+          </div>
+          <Nav />
+        </>
+      )}
+
+      {/* ------------------------------ OFFERS ------------------------------ */}
+      {screen === "offers" && (
+        <>
+          <Bar title={t.offersT} />
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4 no-scrollbar">
+            <div className="deva px-0.5 text-[14px] font-extrabold">{t.running}</div>
+            {home.campaigns.length ? home.campaigns.map((c: any) => <CampRow key={c.id} c={c} />)
+              : <Card className="deva px-3.5 py-3 text-[12.5px] text-[#667085]">{t.noRunning}</Card>}
+            <div className="deva px-0.5 pt-1 text-[14px] font-extrabold">{t.suggested}</div>
+            {home.opportunities.filter((o: any) => o.kind !== "loan" && !home.campaigns.some((c: any) => c.play === o.play)).map((o: any) => {
+              const [ic, bg, fg] = ICON_FOR[o.play] || ICON_FOR.winback;
+              return (
+                <button key={o.id} onClick={() => openOpp(o.play)} className="flex w-full items-center gap-2.5 rounded-2xl border border-[#E8EDF3] bg-white px-3.5 py-3 text-left hover:border-[#9ADCF3]">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px]" style={{ background: bg }}><Icon name={ic} size={18} color={fg} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="deva text-[13.5px] font-bold leading-[18px]">{o.headline}</div>
+                    <div className="deva mt-0.5 text-[12px] font-extrabold text-[#00A3DB]">{o.action_label} ›</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* ------------------------------ REPORTS ------------------------------ */}
+      {screen === "reports" && (
+        <>
+          <Bar title={t.reportsT} />
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4 no-scrollbar">
+            <Card className="px-3.5 pb-2 pt-3.5">
+              <div className="deva text-[12.5px] font-bold text-[#344054]">{t.last30}</div>
+              <ResponsiveContainer width="100%" height={130}>
+                <AreaChart data={home.series} margin={{ top: 8, right: 4, bottom: 0, left: -18 }}>
+                  <defs><linearGradient id="repfade" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={C.sky} stopOpacity={0.3} /><stop offset="100%" stopColor={C.sky} stopOpacity={0} />
+                  </linearGradient></defs>
+                  <CartesianGrid stroke="#EEF2F6" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9.5, fill: "#98A2B3" }} axisLine={false} tickLine={false} interval={9} />
+                  <YAxis tick={{ fontSize: 9.5, fill: "#98A2B3" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => `₹${Math.round(v / 1000)}k`} />
+                  <Tooltip formatter={(v: any) => inr(v)} contentStyle={{ fontSize: 11, borderRadius: 10 }} />
+                  <Area type="monotone" dataKey="gmv" stroke={C.navy} strokeWidth={2} fill="url(#repfade)" name="₹" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Card>
+            <div className="grid grid-cols-2 gap-2">
+              {[[inr(s.week_gmv), t.week, `${s.week_change_pct >= 0 ? "▲" : "▼"} ${Math.abs(s.week_change_pct)}% ${t.vsLast}`, s.week_change_pct >= 0],
+                [inr(s.avg_bill), t.avgBill, null],
+                [`${home.repeat?.you ?? s.repeat_rate}%`, t.repeatRate, home.repeat?.n_shops ? t.nearbyRepeat(home.repeat.cohort) : null],
+                [s.today_txns, t.todayPay, null]].map(([big, label, sub, up]: any) => (
+                <Card key={label} className="px-3 py-2.5">
+                  <div className="tnum text-[19px] font-extrabold text-[#002E6E]">{big}</div>
+                  <div className="deva text-[11.5px] font-medium text-[#667085]">{label}</div>
+                  {sub && <div className={`deva tnum mt-0.5 text-[11px] font-bold ${up === false ? "text-[#B42318]" : up ? "text-[#067647]" : "text-[#667085]"}`}>{sub}</div>}
+                </Card>
+              ))}
+            </div>
+            <Primary onClick={() => onSpeak?.(home.briefing)}><Icon name="volume" size={17} color="#fff" stroke={2.2} /> {t.speakReport}</Primary>
+          </div>
+          <Nav />
+        </>
+      )}
+
+      {/* ------------------------------ RECEIVE (QR) ------------------------------ */}
+      {screen === "qr" && (
+        <>
+          <Bar title={t.qrT} />
+          <div className="flex flex-1 flex-col items-center overflow-y-auto px-4 pb-4 pt-5 no-scrollbar">
+            <div className="w-full rounded-3xl bg-white p-5 text-center shadow-[0_8px_24px_-12px_rgba(16,24,40,.25)]">
+              <div className="text-[18px] font-extrabold tracking-[-0.03em]"><span className="text-[#002E6E]">pay</span><span className="text-[#00BAF2]">tm</span></div>
+              <div className="deva mt-1 text-[15px] font-bold">{s.name}</div>
+              <FakeQR seed={mid} />
+              <div className="deva text-[12px] font-medium text-[#667085]">{t.qrSub}</div>
+            </div>
+            {paid && (
+              <div className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-[#ABEFC6] bg-[#ECFDF3] px-3.5 py-3">
+                <Icon name="check" size={20} color="#12B76A" stroke={2.6} />
+                <div><div className="deva text-[11.5px] font-bold text-[#067647]">{t.lastPaid} · {paid.time}</div><div className="tnum text-[18px] font-extrabold text-[#054F31]">{inr(paid.amount)}</div></div>
+              </div>
+            )}
+          </div>
+          <Footer>
+            <Primary onClick={simulatePay}><Icon name="soundbox" size={17} color="#fff" stroke={2.2} /> {t.simulate}</Primary>
+            <div className="deva mt-1.5 text-center text-[11px] font-medium text-[#98A2B3]">{t.simNote}</div>
+          </Footer>
+        </>
+      )}
+
+      {/* ------------------------------ NO LOAN ------------------------------ */}
+      {screen === "noloan" && (
+        <>
+          <Bar title={t.services[1]} />
+          <div className="flex-1 px-4 pt-8 text-center">
+            <div className="mx-auto grid h-[60px] w-[60px] place-items-center rounded-full bg-[#ECFDF3]"><Icon name="check" size={30} color="#12B76A" stroke={2.6} /></div>
+            <div className="deva mt-3 text-[18px] font-extrabold">{t.noLoanT}</div>
+            <div className="deva mx-auto mt-1.5 max-w-[290px] text-[13px] leading-[19px] text-[#667085]">{t.noLoanS}</div>
+          </div>
+        </>
+      )}
+
+      {/* ------------------------------ PROFILE ------------------------------ */}
+      {screen === "profile" && (
+        <>
+          <Bar title={t.profileT} />
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4 no-scrollbar">
+            <Card className="flex items-center gap-3 p-3.5">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-[#E5F7FE] text-[20px] font-extrabold text-[#002E6E]">{s.name[0]}</div>
+              <div><div className="text-[16px] font-extrabold">{s.name}</div><div className="deva text-[12px] font-medium text-[#667085]">{t.cat[s.category] || s.category}</div></div>
+            </Card>
+            <Card className="divide-y divide-[#EEF2F6]">
+              <Row label={t.shopId} value={<span className="font-mono">{mid}</span>} />
+              <Row label={t.type} value={t.cat[s.category] || s.category} />
+              <div className="flex items-center justify-between px-3.5 py-2.5">
+                <span className="deva text-[13.5px] font-semibold text-[#344054]">{t.language}</span>
+                <div className="flex rounded-full bg-[#F2F4F7] p-0.5">
+                  {[["hi", "हिंदी"], ["en", "English"]].map(([k, v]) => (
+                    <button key={k} onClick={() => onLang?.(k)} className={`deva rounded-full px-3 py-1 text-[12px] font-bold ${lang === k ? "bg-white text-[#002E6E] shadow-sm" : "text-[#667085]"}`}>{v}</button>
+                  ))}
+                </div>
+              </div>
+              <Row label={t.soundboxRow} value={<span className="text-[#067647]">●</span>} onClick={() => go("soundbox")} />
+              <Row label={t.offersT} value={home.campaigns.length || ""} onClick={() => go("offers")} />
+            </Card>
+            <div className="deva flex gap-2 rounded-xl border border-[#E8EDF3] bg-white px-3 py-2.5 text-[11.5px] leading-[16px] text-[#667085]">
+              <Icon name="alert" size={16} color="#98A2B3" className="mt-px shrink-0" /> {t.dataNote}
+            </div>
+          </div>
+          <Nav />
+        </>
+      )}
+
       {/* ------------------------------ SHEETS ------------------------------ */}
       {confirm && opp && (
         <div className="absolute inset-0 z-30 flex items-end" onClick={() => setConfirm(false)}>
@@ -619,6 +848,35 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** A QR-looking pattern for the demo (not a scannable code). */
+function FakeQR({ seed }: { seed: string }) {
+  const n = 25;
+  let x = [...seed].reduce((a, ch) => a * 31 + ch.charCodeAt(0), 7) >>> 0;
+  const rnd = () => ((x = (x * 1103515245 + 12345) >>> 0) / 4294967296);
+  const finder = (r: number, c: number) =>
+    [[0, 0], [0, n - 7], [n - 7, 0]].some(([fr, fc]) => r >= fr && r < fr + 7 && c >= fc && c < fc + 7);
+  const cell = (r: number, c: number) => {
+    for (const [fr, fc] of [[0, 0], [0, n - 7], [n - 7, 0]]) {
+      if (r >= fr && r < fr + 7 && c >= fc && c < fc + 7) {
+        const i = r - fr, j = c - fc;
+        return i === 0 || i === 6 || j === 0 || j === 6 || (i >= 2 && i <= 4 && j >= 2 && j <= 4);
+      }
+    }
+    return rnd() > 0.5;
+  };
+  const cells: React.ReactNode[] = [];
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const on = cell(r, c);
+    if (on) cells.push(<rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill={finder(r, c) ? "#002E6E" : "#101828"} />);
+  }
+  return (
+    <div className="relative mx-auto my-4 w-[210px]">
+      <svg viewBox={`-1 -1 ${n + 2} ${n + 2}`} className="w-full" shapeRendering="crispEdges">{cells}</svg>
+      <div className="absolute left-1/2 top-1/2 grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-lg border-[3px] border-white bg-[#002E6E] text-[18px] font-extrabold text-[#00BAF2]">p</div>
     </div>
   );
 }

@@ -12,7 +12,8 @@ export const api = {
       body: JSON.stringify({ merchant_id, play }) }).then(J),
   fastForward: (cid: string, lang: string) =>
     fetch(`/api/campaigns/${cid}/fast-forward?lang=${lang}`, { method: "POST" }).then(J),
-  recent: (mid: string) => fetch(`/api/merchants/${mid}/recent`).then(J),
+  recent: (mid: string, n = 6) => fetch(`/api/merchants/${mid}/recent?n=${n}`).then(J),
+  campaign: (cid: string) => fetch(`/api/campaigns/${cid}`).then(J),
   loan: (mid: string) => fetch(`/api/loan/${mid}`).then(J),
   applyLoan: (mid: string) =>
     fetch(`/api/loan/${mid}/apply`, { method: "POST", headers: { "Content-Type": "application/json" },

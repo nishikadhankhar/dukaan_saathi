@@ -13,6 +13,7 @@ Planted scenarios (so the detectors have something real to find):
 from __future__ import annotations
 
 import datetime as dt
+import os
 from dataclasses import dataclass
 
 import numpy as np
@@ -22,6 +23,18 @@ SEED = 20260919
 DAYS = 90                    # day 0 = oldest, day DAYS-1 = today
 N_CUSTOMERS = 6000
 AREA_KM = 3.0
+
+# Demo day is pinned so the numbers on stage match rehearsal and the Figma
+# screens. DEMO_DATE=today makes the world follow the real calendar instead.
+DEMO_DATE = dt.date(2026, 9, 19)
+
+
+def demo_today() -> dt.date:
+    v = os.environ.get("DEMO_DATE", "").strip()
+    if v == "today":
+        return dt.date.today()
+    return dt.date.fromisoformat(v) if v else DEMO_DATE
+
 
 FESTIVAL_NAME = "Navratri"
 FESTIVAL_DATE = dt.date(2026, 10, 11)   # Sharad Navratri 2026 begins
@@ -275,7 +288,7 @@ def _plant(rng, tx, merchants, customers, choice, today):
 
 def build_world(seed: int = SEED) -> World:
     rng = np.random.default_rng(seed)
-    today = dt.date.today()
+    today = demo_today()
     merchants = _merchants(rng)
     customers = _customers(rng)
 
