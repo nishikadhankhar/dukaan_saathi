@@ -548,7 +548,7 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
         const f = opp.charts.forecast, mx = Math.max(...f.map((x: any) => x.sales));
         const facts = lang === "hi" ? [
           `लोन ${loan.partner} देता है। Paytm सिर्फ़ जोड़ता है, लोन देने वाला नहीं।`,
-          `ब्याज ${loan.monthly_rate_pct}% प्रति माह घटते बैलेंस पर, और एक बार ${inr(loan.processing_fee)} फ़ीस।`,
+          `ब्याज ${loan.monthly_rate_pct}% प्रति माह, पूरी रकम पर, और एक बार ${inr(loan.processing_fee)} फ़ीस।`,
           "आपकी सहमति के बिना कुछ नहीं भेजा जाता। पैसा लेंडर की मंज़ूरी के बाद ही आता है।",
         ] : [loan.disclosures[0], loan.disclosures[1], loan.disclosures[3]];
         return (

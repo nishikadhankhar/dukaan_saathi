@@ -190,7 +190,7 @@ def loan_quote(opp) -> dict:
             "total_repayable": a["total_repayable"], "daily_repayment": a["daily_repayment"],
             "disclosures": [
                 f"Offered by {a['partner']}, a demo lending partner. Paytm is a distributor, not the lender.",
-                f"Interest {a['monthly_rate_pct']}% per month on reducing balance, "
+                f"Interest {a['monthly_rate_pct']}% per month, flat on the full amount, "
                 f"plus a one-time processing fee of {inr(a['processing_fee'])}.",
                 f"Repaid as {inr(a['daily_repayment'])} deducted from your daily settlements "
                 f"for {a['tenure_days']} days.",
