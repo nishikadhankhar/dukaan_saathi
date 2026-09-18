@@ -113,6 +113,18 @@ def merchant_home(mid: str, lang: str = "hi") -> dict:
     }
 
 
+@app.get("/api/merchants/{mid}/recent")
+def recent_payments(mid: str, n: int = 6) -> list[dict]:
+    """Today's latest payments, newest first -- what the Soundbox actually announced."""
+    m = S.merchant(mid)
+    today = m._tx[m._tx.day == m._tx.day.max()].sort_values(["hour", "minute"], ascending=False).head(n)
+    return [{"time": pd_time(int(r.hour), int(r.minute)), "amount": int(r.amount)} for r in today.itertuples()]
+
+
+def pd_time(h: int, mnt: int) -> str:
+    return f"{(h % 12) or 12}:{mnt:02d} {'PM' if h >= 12 else 'AM'}"
+
+
 @app.get("/api/opportunities/{mid}/{play}")
 def opportunity(mid: str, play: str, lang: str = "hi") -> dict:
     fired, cards = S.opportunities(mid)

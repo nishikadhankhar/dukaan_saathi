@@ -1,105 +1,154 @@
 import React, { useEffect, useState } from "react";
+import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, inr } from "./api";
-import { Btn, Compare, Forecast, Hourly, Label, Pill, Sheet, Spark, Traceable, WeeklyCustomers } from "./ui";
+import { Icon } from "./icons";
+import { Hourly } from "./ui";
 
-const T = {
-  hi: { today: "आज की बिक्री", customers: "ग्राहक", bill: "औसत बिल", opps: "आज के मौके",
-        approve: "मंज़ूरी दें", notNow: "अभी नहीं", running: "चल रहे ऑफर", results: "नतीजे",
-        evidence: "सबूत", sent: "ऑफर भेज दिया", ff: "14 दिन आगे बढ़ाएँ", speak: "साउंडबॉक्स पर सुनें",
-        control: "कंट्रोल ग्रुप", got: "ऑफर मिला", extra: "अतिरिक्त बिक्री", spent: "खर्च",
-        offer: "ऑफर", nav: ["होम", "ऑफर", "रिपोर्ट", "मदद"] },
-  en: { today: "Today's sales", customers: "customers", bill: "avg bill", opps: "Today's opportunities",
-        approve: "Approve", notNow: "Not now", running: "Running offers", results: "Results",
-        evidence: "Evidence", sent: "Offer sent", ff: "Fast-forward 14 days", speak: "Hear on Soundbox",
-        control: "Control group", got: "Got the offer", extra: "Extra sales", spent: "Spent",
-        offer: "The offer", nav: ["Home", "Offers", "Reports", "Help"] },
+// Paytm for Business palette
+const C = { navy: "#002E6E", sky: "#00BAF2", link: "#00A3DB", skyL: "#E5F7FE", bg: "#F5F7FA",
+            line: "#E8EDF3", muted: "#667085", ink: "#101828" };
+
+const L = {
+  hi: { collection: "आज का कलेक्शन", pay: "भुगतान", cust: "ग्राहक", bill: "औसत बिल", settle: "Settlement: आज रात 10 बजे",
+        history: "History", services: ["साउंडबॉक्स", "लोन", "ऑफर", "रिपोर्ट"], saathi: "दुकान साथी · आज के मौके",
+        perMonth: "/ महीना", partnerLoan: "पार्टनर लोन", running: "चल रहे ऑफर", nav: ["होम", "भुगतान", "बिज़नेस", "प्रोफ़ाइल"],
+        details: "पूरी जानकारी", offer: "ऑफर", people: "ग्राहक", maxSpend: "अधिकतम खर्च", estimate: "अनुमान / महीना",
+        notNow: "अभी नहीं", approve: "मंज़ूरी दें", viewPay: "पेमेंट देखें", visitsOf: (n: number) => `इन ${n} ग्राहकों की हर हफ्ते की विज़िट`,
+        rival: "नई दुकान खुली", weeksAgo: "12 हफ्ते पहले", thisWeek: "इस हफ्ते",
+        before: "भेजने से पहले", sendTo: (n: number) => `${n} ग्राहकों को ऑफर जाएगा`,
+        holdout: (n: number) => `${n} को जानबूझकर नहीं भेजेंगे — ताकि पता चले ऑफर से असल में कितना फ़र्क पड़ा।`,
+        capT: (v: string) => `खर्च की सीमा ${v}`, capS: "इससे ज़्यादा एक रुपया भी नहीं कटेगा।",
+        sbT: "नतीजा साउंडबॉक्स पर", sbS: "14 दिन बाद साउंडबॉक्स बताएगा कि कितने ग्राहक लौटे और कितनी कमाई हुई।",
+        confirm: (v: string) => `मंज़ूरी दें · अधिकतम ${v}`, live: "ऑफर चालू है", sent: "ऑफर भेज दिया",
+        reached: (n: number, v: string) => `${n} ग्राहकों के Paytm ऐप में ${v} पहुँच गया`, sentN: "भेजा", control: "कंट्रोल ग्रुप",
+        cap: "खर्च की सीमा", preview: "ग्राहक के फ़ोन पर ऐसा दिखेगा", today: "आज", sentStep: "ऑफर भेजा",
+        endStep: "ऑफर खत्म होगा", resultStep: "नतीजा साउंडबॉक्स पर", ff: "14 दिन आगे बढ़ाएँ", demo: "डेमो कंट्रोल — अगले दो हफ्ते चलाकर दिखाता है",
+        results: "नतीजे · 14 दिन", extra: "ऑफर से अतिरिक्त बिक्री", spent: "खर्च", perRupee: (v: string) => `हर ₹1 पर ${v}`,
+        returned: "14 दिन में कितने ग्राहक लौटे", got: "ऑफर मिला", ctrl: "कंट्रोल ग्रुप (ऑफर नहीं)",
+        smallNote: "कंट्रोल ग्रुप छोटा है, इसलिए इसे पक्का सबूत नहीं, दिशा मानें।",
+        bigNote: "यह नतीजा एक रैंडम कंट्रोल ग्रुप से तुलना करके मापा गया है।",
+        announced: "साउंडबॉक्स ने सुनाया", replay: "साउंडबॉक्स पर फिर सुनें", loanT: "त्योहार के लिए लोन",
+        forecast: "अगले 30 दिन की अनुमानित बिक्री", lift: (f: string, p: number) => `${f} — बिक्री लगभग ${p}% ज़्यादा`,
+        from: (p: string) => `${p} से`, perDay: "/ दिन", fromSettle: (d: number) => `सेटलमेंट से, ${d} दिन`,
+        interest: "ब्याज", fee: "फ़ीस", total: "कुल चुकाना", facts: "ज़रूरी बातें",
+        consent: "मैं अपनी Paytm बिक्री की जानकारी इस आवेदन के लिए लेंडर से साझा करने की सहमति देता/देती हूँ।",
+        apply: "पार्टनर से आवेदन करें", appliedMsg: "आवेदन पार्टनर को भेज दिया। फ़ैसला लेंडर का होगा, Paytm का नहीं। पैसा आने से पहले आपसे हस्ताक्षर माँगे जाएँगे।",
+        applied: "आवेदन भेज दिया", sbTitle: "साउंडबॉक्स", linked: "जुड़ा है · डेमो डिवाइस",
+        announcedToday: (n: number) => `आज ${n} भुगतान सुनाए`, voice: "दुकान साथी की आवाज़",
+        toggles: [["शाम की रिपोर्ट", "रोज़ रात 9 बजे, दिन की बिक्री और एक मौका"], ["नए मौके बताएँ", "जब कोई ज़रूरी बात दिखे"], ["ऑफर के नतीजे", "ऑफर खत्म होने पर कमाई का हिसाब"]],
+        recent: "हाल में सुनाया", saathiTag: "शाम की रिपोर्ट · दुकान साथी", payTag: "भुगतान",
+        received: (v: string) => `Paytm पर ${v} प्राप्त हुए`, playNow: "आज की रिपोर्ट अभी सुनाएँ",
+        proofMasked: (a: number, b: number) => `नाम और नंबर छिपे हैं · ${a} of ${b} दिखा रहे हैं`,
+        cols: ["ग्राहक", "विज़िट", "आख़िरी बार", "औसत बिल"], source: "स्रोत: आपके Paytm पेमेंट रिकॉर्ड · यही आँकड़े कार्ड पर दिखे हैं",
+        daysAgo: (s: string) => s.replace(" days ago", " दिन पहले") },
+  en: { collection: "Today's collection", pay: "payments", cust: "customers", bill: "avg bill", settle: "Settlement: tonight, 10 PM",
+        history: "History", services: ["Soundbox", "Loans", "Offers", "Reports"], saathi: "Dukaan Saathi · today's opportunities",
+        perMonth: "/ month", partnerLoan: "partner loan", running: "Running offers", nav: ["Home", "Payments", "Business", "Profile"],
+        details: "Details", offer: "The offer", people: "Customers", maxSpend: "Max spend", estimate: "Est. / month",
+        notNow: "Not now", approve: "Approve", viewPay: "View payments", visitsOf: (n: number) => `Weekly visits from these ${n} customers`,
+        rival: "New shop opened", weeksAgo: "12 weeks ago", thisWeek: "This week",
+        before: "Before this goes out", sendTo: (n: number) => `The offer goes to ${n} customers`,
+        holdout: (n: number) => `${n} are deliberately held back, so we can measure what the offer really did.`,
+        capT: (v: string) => `Spending capped at ${v}`, capS: "Not a rupee more can go out.",
+        sbT: "Result on the Soundbox", sbS: "In 14 days the Soundbox announces how many came back and what it earned.",
+        confirm: (v: string) => `Approve · ${v} max`, live: "Offer running", sent: "Offer sent",
+        reached: (n: number, v: string) => `${v} reached ${n} customers in their Paytm app`, sentN: "sent", control: "control group",
+        cap: "spend cap", preview: "What the customer sees", today: "Today", sentStep: "Offer sent",
+        endStep: "Offer ends", resultStep: "Result on the Soundbox", ff: "Fast-forward 14 days", demo: "Demo control — plays the next two weeks forward",
+        results: "Results · 14 days", extra: "Extra sales from the offer", spent: "Spent", perRupee: (v: string) => `${v} per ₹1`,
+        returned: "Customers who came back within 14 days", got: "Got the offer", ctrl: "Control group (no offer)",
+        smallNote: "The control group is small, so treat this as directional, not proof.",
+        bigNote: "Measured against a randomised control group.",
+        announced: "The Soundbox announced", replay: "Play again on the Soundbox", loanT: "Festival stock loan",
+        forecast: "Expected sales, next 30 days", lift: (f: string, p: number) => `${f} — sales up about ${p}%`,
+        from: (p: string) => `from ${p}`, perDay: "/ day", fromSettle: (d: number) => `from settlements, ${d} days`,
+        interest: "Interest", fee: "Fee", total: "Total repayable", facts: "Key facts",
+        consent: "I agree to share my Paytm sales data with the lender for this application.",
+        apply: "Apply through partner", appliedMsg: "Application sent to the partner. The lender decides, not Paytm. You will be asked to sign before any money moves.",
+        applied: "Application sent", sbTitle: "Soundbox", linked: "Connected · demo device",
+        announcedToday: (n: number) => `${n} payments announced today`, voice: "Dukaan Saathi voice",
+        toggles: [["Evening report", "Every night at 9 — the day's sales and one opportunity"], ["New opportunities", "When something important comes up"], ["Offer results", "What the offer earned, once it ends"]],
+        recent: "Recently announced", saathiTag: "Evening report · Dukaan Saathi", payTag: "Payment",
+        received: (v: string) => `Received ${v} on Paytm`, playNow: "Play today's report now",
+        proofMasked: (a: number, b: number) => `Names and numbers hidden · showing ${a} of ${b}`,
+        cols: ["Customer", "Visits", "Last seen", "Avg bill"], source: "Source: your Paytm payment records — the same figures shown on the card",
+        daysAgo: (s: string) => s },
 };
 
-function evidenceRows(play: string, e: any, prov: any) {
-  const P = (k: string) => prov?.[k];
-  if (play === "winback")
-    return [
-      ["Regulars who stopped", e.lapsed_regulars, P("lapsed_regulars")],
-      ["Weeks since last visit", e.weeks_since_last_visit],
-      ["They used to visit", `${e.visits_per_month_before}/mo`],
-      ["Monthly sales at risk", inr(e.monthly_value_at_risk)],
-      ...(e.moved_to_new_shop
-        ? [["Now at a new shop nearby", `${e.moved_to_new_shop} of them`],
-           ["That shop opened", `${e.new_shop_opened_days_ago}d ago · ${e.new_shop_distance_m}m`]]
-        : []),
-      ["Your repeat rate", `${e.your_repeat_rate_pct}%`],
-      [`Nearby (${e.nearby_shops_compared} shops)`, `${e.nearby_repeat_rate_pct}%`],
-    ];
-  if (play === "dead_hours")
-    return [
-      ["Your share then", `${e.your_share_pct}%`, P("your_share_pct")],
-      [`Nearby (${e.nearby_shops_compared} shops)`, `${e.nearby_share_pct}%`],
-      ["Your weekly sales", inr(e.weekly_sales)],
-      ["Worth per week", inr(e.weekly_potential)],
-      ["Regulars to invite", e.regular_customers],
-    ];
-  if (play === "low_ticket")
-    return [
-      ["Your median bill", inr(e.your_median_bill), P("your_median_bill")],
-      [`Nearby (${e.nearby_shops_compared} shops)`, inr(e.nearby_median_bill)],
-      ["Your regulars", e.regular_customers],
-      ["Suggested target", inr(e.spend_target)],
-    ];
+const h12 = (h: number) => (h % 12) || 12;
+
+function tiles(play: string, e: any, lang: string) {
+  const hi = lang === "hi";
+  if (play === "winback") return [
+    [e.lapsed_regulars, hi ? "नियमित ग्राहक जो रुक गए" : "regulars who stopped", "lapsed_regulars"],
+    [inr(e.monthly_value_at_risk), hi ? "हर महीने की खरीद खतरे में" : "monthly spend at risk"],
+    e.moved_to_new_shop
+      ? [e.moved_to_new_shop, hi ? `अब ${e.new_shop_distance_m} मी. दूर नई दुकान पर` : `now at a new shop ${e.new_shop_distance_m}m away`]
+      : [e.weeks_since_last_visit, hi ? "हफ्ते से नहीं आए" : "weeks since last visit"],
+    [`${e.your_repeat_rate_pct}%`, hi ? `आपका रिपीट रेट · आसपास ${e.nearby_repeat_rate_pct}%` : `your repeat rate · nearby ${e.nearby_repeat_rate_pct}%`],
+  ];
+  if (play === "dead_hours") return [
+    [`${e.your_share_pct}%`, hi ? `${h12(e.quiet_from_hour)}–${h12(e.quiet_to_hour)} बजे आपकी बिक्री` : `your sales, ${h12(e.quiet_from_hour)}–${h12(e.quiet_to_hour)} PM`, "your_share_pct"],
+    [`${e.nearby_share_pct}%`, hi ? `आसपास की ${e.nearby_shops_compared} दुकानों में` : `at ${e.nearby_shops_compared} nearby shops`],
+    [inr(e.weekly_potential), hi ? "हर हफ्ते संभव" : "possible per week"],
+    [e.regular_customers, hi ? "नियमित ग्राहक" : "regular customers"],
+  ];
   return [
-    ["Festival starts in", `${e.festival_days_away} days`],
-    ["Usual lift", `${e.expected_uplift_pct}% / ${e.festival_window_days}d`],
-    ["Extra stock upfront", inr(e.extra_stock_needed)],
-    ["Your weekly margin", inr(e.weekly_margin)],
-    ["Your daily sales", inr(e.daily_sales), P("daily_sales")],
+    [inr(e.your_median_bill), hi ? "आपका औसत बिल" : "your median bill", "your_median_bill"],
+    [inr(e.nearby_median_bill), hi ? `आसपास की ${e.nearby_shops_compared} दुकानें` : `${e.nearby_shops_compared} shops nearby`],
+    [e.regular_customers, hi ? "नियमित ग्राहक" : "regular customers"],
+    [inr(e.spend_target), hi ? "सुझाया टारगेट" : "suggested target"],
   ];
 }
 
-const StatusBar = () => (
-  <div className="flex h-[38px] items-end justify-between px-6 pb-1 text-[11px] font-bold text-[#0b1b33]">
-    <span className="tnum">9:41</span>
-    <div className="flex items-center gap-1.5">
-      <svg width="15" height="10" viewBox="0 0 15 10" fill="currentColor"><rect x="0" y="7" width="2.5" height="3" rx=".6"/><rect x="4" y="5" width="2.5" height="5" rx=".6"/><rect x="8" y="2.5" width="2.5" height="7.5" rx=".6"/><rect x="12" y="0" width="2.5" height="10" rx=".6"/></svg>
-      <svg width="13" height="10" viewBox="0 0 13 10" fill="currentColor"><path d="M6.5 9.5 0.6 3.3a8.4 8.4 0 0 1 11.8 0L6.5 9.5Z" opacity=".95"/></svg>
-      <div className="flex h-[10px] w-[20px] items-center rounded-[3px] border border-[#0b1b33]/40 p-[1.5px]">
-        <div className="h-full w-[72%] rounded-[1px] bg-[#0b1b33]" />
-      </div>
-    </div>
-  </div>
-);
+function offerLine(play: string, e: any, lang: string) {
+  const hi = lang === "hi";
+  if (play === "winback") return hi ? `${inr(e.min_bill)} या ज़्यादा के बिल पर ${inr(e.cashback)} कैशबैक · ${e.valid_days} दिन`
+    : `${inr(e.cashback)} cashback on bills of ${inr(e.min_bill)} or more · ${e.valid_days} days`;
+  if (play === "dead_hours") return hi ? `${h12(e.quiet_from_hour)}–${h12(e.quiet_to_hour)} बजे ${e.discount_pct}% छूट, ${inr(e.max_discount)} तक · ${e.valid_days} दिन`
+    : `${e.discount_pct}% off, ${h12(e.quiet_from_hour)}–${h12(e.quiet_to_hour)} PM, up to ${inr(e.max_discount)} · ${e.valid_days} days`;
+  return hi ? `${inr(e.spend_target)} के बिल पर ${inr(e.cashback)} वापस · ${e.valid_days} दिन`
+    : `${inr(e.cashback)} back on bills of ${inr(e.spend_target)} · ${e.valid_days} days`;
+}
+
+const ICON_FOR: any = { winback: ["users", C.skyL, C.navy], dead_hours: ["clock", C.skyL, C.navy],
+                        low_ticket: ["tag", C.skyL, C.navy], cash_gap: ["loan", "#FFFAEB", "#B54708"] };
 
 export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, onData }: any) {
-  const t = T[lang];
-  const deva = lang === "hi" ? "deva" : "";
+  const t = L[lang];
   const [home, setHome] = useState<any>(null);
   const [screen, setScreen] = useState("home");
   const [opp, setOpp] = useState<any>(null);
   const [camp, setCamp] = useState<any>(null);
+  const [notes, setNotes] = useState<any[]>([]);
   const [result, setResult] = useState<any>(null);
   const [loan, setLoan] = useState<any>(null);
   const [consent, setConsent] = useState(false);
-  const [applied, setApplied] = useState<any>(null);
+  const [applied, setApplied] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [prov, setProv] = useState<any>(null);
+  const [recent, setRecent] = useState<any[]>([]);
+  const [toggles, setToggles] = useState([true, true, true]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setScreen("home"); setOpp(null); setCamp(null); setResult(null); setApplied(null); setConsent(false);
+    setScreen("home"); setOpp(null); setCamp(null); setResult(null); setApplied(false); setConsent(false);
     api.home(mid, lang).then((d) => { setHome(d); onData?.(d); });
+    api.recent(mid).then(setRecent);
   }, [mid, lang]);
 
-  if (!home) return <div className="grid h-full place-items-center text-[12px] font-semibold text-[#8a98ad]">Loading…</div>;
+  if (!home) return <div className="grid h-full place-items-center text-[12px] font-semibold text-[#98A2B3]">Loading…</div>;
   const s = home.summary;
 
   const openOpp = async (play: string) => {
     const d = await api.opportunity(mid, play, lang);
     setOpp(d);
-    if (d.kind === "loan") { setLoan(await api.loan(mid)); setScreen("loan"); }
-    else setScreen("detail");
+    if (d.kind === "loan") { setLoan(await api.loan(mid)); setScreen("loan"); } else setScreen("detail");
   };
   const doApprove = async () => {
     setBusy(true);
     const r = await api.approve(mid, opp.play);
-    setCamp(r.campaign); onCampaign?.(r.campaign); onNotify?.(r.notifications);
+    setCamp(r.campaign); setNotes(r.notifications); onCampaign?.(r.campaign); onNotify?.(r.notifications);
     setConfirm(false); setScreen("sent"); setBusy(false);
   };
   const doForward = async () => {
@@ -108,300 +157,468 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
     setResult(r); setScreen("result"); setBusy(false); onSpeak?.(r.speech);
   };
 
-  const Bar = ({ title, back }: any) => (
-    <div className="flex items-center gap-3 border-b border-[#e6ebf3] bg-white px-4 pb-3">
-      {back && (
-        <button onClick={back} className="grid h-8 w-8 place-items-center rounded-full bg-[#f1f4f9] text-[#0b1b33]">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2"
-            strokeLinecap="round" strokeLinejoin="round"><path d="M10 3 5 8l5 5" /></svg>
-        </button>
-      )}
-      <div className={`text-[15px] font-extrabold tracking-tight text-[#0b1b33] ${deva}`}>{title}</div>
+  // ---------- shared chrome ----------
+  const Status = () => (
+    <div className="flex h-[40px] shrink-0 items-end justify-between bg-white px-7 pb-1 text-[13px] font-bold text-[#101828]">
+      <span className="tnum">9:41</span>
+      <div className="flex items-center gap-[5px]">
+        {[5, 7, 9, 11].map((h) => <div key={h} className="w-[3px] rounded-[1px] bg-[#101828]" style={{ height: h }} />)}
+        <div className="ml-1 h-[11px] w-[22px] rounded-[3px] border border-[#101828]" />
+      </div>
     </div>
   );
-
-  const Nav = () => (
-    <div className="flex items-center justify-around border-t border-[#e6ebf3] bg-white pb-5 pt-2.5">
-      {t.nav.map((n: string, i: number) => (
-        <div key={n} className={`flex flex-col items-center gap-1 ${i === 0 ? "text-[#002970]" : "text-[#a9b4c6]"}`}>
-          <div className={`h-[18px] w-[18px] rounded-[5px] ${i === 0 ? "bg-[#002970]" : "bg-[#cfd8e6]"}`} />
-          <span className={`text-[9px] font-bold ${deva}`}>{n}</span>
-        </div>
-      ))}
+  const Bar = ({ title }: any) => (
+    <div className="flex shrink-0 items-center gap-3 border-b border-[#EEF2F6] bg-white px-3 pb-3 pt-1.5">
+      <button onClick={() => setScreen("home")} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F2F4F7]">
+        <Icon name="back" size={21} stroke={2.2} color={C.ink} />
+      </button>
+      <div className="deva text-[16px] font-bold text-[#101828]">{title}</div>
     </div>
+  );
+  const Card = ({ className = "", children, style }: any) => (
+    <div className={`rounded-2xl border border-[#E8EDF3] bg-white ${className}`} style={style}>{children}</div>
+  );
+  const Primary = ({ children, className = "", ...p }: any) => (
+    <button {...p} className={`deva flex w-full items-center justify-center gap-2 rounded-xl bg-[#00BAF2] py-3.5 text-[15px] font-bold text-white transition hover:brightness-105 active:scale-[.99] disabled:opacity-40 ${className}`}>{children}</button>
+  );
+  const Footer = ({ children }: any) => (
+    <div className="shrink-0 border-t border-[#EEF2F6] bg-white px-4 pb-6 pt-3">{children}</div>
+  );
+  const Pill = ({ bg, fg, children }: any) => (
+    <span className="deva tnum rounded-md px-2 py-0.5 text-[11px] font-extrabold" style={{ background: bg, color: fg }}>{children}</span>
   );
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-[#f4f6fa] text-[#0b1b33]">
-      <div className="bg-white pt-[6px]"><StatusBar /></div>
+    <div className="relative flex h-full flex-col overflow-hidden bg-[#F5F7FA] text-[#101828]">
+      <Status />
 
+      {/* ------------------------------ HOME ------------------------------ */}
       {screen === "home" && (
         <>
-          <div className="flex items-center gap-3 bg-white px-4 pb-3">
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-[#eaf0fb] text-[13px] font-extrabold text-[#002970]">
-              {s.name[0]}
+          <div className="flex shrink-0 items-center gap-2.5 bg-white px-4 pb-3 pt-1">
+            <div className="flex-1 leading-none">
+              <div className="text-[22px] font-extrabold tracking-[-0.03em]"><span className="text-[#002E6E]">pay</span><span className="text-[#00BAF2]">tm</span></div>
+              <div className="mt-0.5 text-[10.5px] font-semibold text-[#667085]">for Business</div>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[14px] font-extrabold leading-tight tracking-tight">{s.name}</div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a98ad]">Paytm for Business</div>
-            </div>
+            <Icon name="bell" size={22} color={C.ink} />
+            <div className="grid h-[34px] w-[34px] place-items-center rounded-full bg-[#E5F7FE] text-[14px] font-extrabold text-[#002E6E]">{s.name[0]}</div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 pb-4 no-scrollbar">
-            <div className="rounded-[20px] bg-gradient-to-br from-[#002970] to-[#0b4aa8] p-4 text-white elev">
-              <div className={`text-[11px] font-semibold text-white/70 ${deva}`}>{t.today}</div>
-              <div className="mt-0.5 flex items-end gap-2">
-                <div className="tnum text-[32px] font-extrabold leading-none tracking-tight">{inr(s.today_gmv)}</div>
-                <div className={`mb-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold ${
-                  s.change_pct >= 0 ? "bg-white/15 text-[#7fffd4]" : "bg-white/15 text-[#ffc9c9]"}`}>
+          <div className="flex-1 space-y-3.5 overflow-y-auto px-4 pb-4 pt-3 no-scrollbar">
+            <Card className="px-4 pb-3.5 pt-4">
+              <div className="deva text-[12.5px] font-semibold text-[#667085]">{t.collection} · {s.name}</div>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="tnum text-[31px] font-extrabold leading-none tracking-[-0.02em] text-[#002E6E]">{inr(s.today_gmv)}</div>
+                <Pill bg={s.change_pct >= 0 ? "#ECFDF3" : "#FEF3F2"} fg={s.change_pct >= 0 ? "#067647" : "#B42318"}>
                   {s.change_pct >= 0 ? "▲" : "▼"} {Math.abs(s.change_pct)}%
-                </div>
+                </Pill>
               </div>
-              <div className={`mt-1 text-[11px] font-medium text-white/65 ${deva}`}>
-                {s.today_txns} payments · {s.today_customers} {t.customers} · {t.bill} {inr(s.avg_bill)}
+              <div className="deva tnum mt-1.5 text-[12.5px] font-medium text-[#667085]">
+                {s.today_txns} {t.pay} · {s.today_customers} {t.cust} · {t.bill} {inr(s.avg_bill)}
               </div>
-              <div className="-mx-1 mt-1"><Spark data={home.series} /></div>
+              <div className="my-3 h-px bg-[#EEF2F6]" />
+              <div className="flex items-center justify-between">
+                <span className="deva text-[12px] font-medium text-[#667085]">{t.settle}</span>
+                <span className="text-[12.5px] font-bold text-[#00A3DB]">{t.history} ›</span>
+              </div>
+            </Card>
+
+            <Card className="flex justify-between px-2.5 pb-3 pt-3.5">
+              {[["soundbox", () => setScreen("soundbox")],
+                ["loan", () => { const o = home.opportunities.find((x: any) => x.kind === "loan"); o && openOpp(o.play); }],
+                ["tag", null], ["chart", null]].map(([ic, fn]: any, i: number) => (
+                <button key={ic} onClick={fn || undefined} className={`flex w-[80px] flex-col items-center gap-[7px] ${fn ? "" : "cursor-default"}`}>
+                  <div className="relative grid h-[50px] w-[50px] place-items-center rounded-[14px] bg-[#E5F7FE]">
+                    <Icon name={ic} size={24} color={C.navy} stroke={1.8} />
+                    {i === 0 && <span className="absolute -right-0.5 -top-0.5 h-[11px] w-[11px] rounded-full border-2 border-white bg-[#12B76A]" />}
+                  </div>
+                  <span className="deva text-[12px] font-semibold text-[#344054]">{t.services[i]}</span>
+                </button>
+              ))}
+            </Card>
+
+            <div className="flex items-center gap-2 px-0.5 pt-1">
+              <div className="grid h-6 w-6 place-items-center rounded-[7px] bg-[#002E6E]"><Icon name="sparkle" size={14} color="#fff" stroke={2.2} /></div>
+              <div className="deva flex-1 text-[15px] font-extrabold">{t.saathi}</div>
+              <Pill bg={C.skyL} fg={C.navy}>{home.opportunities.length}</Pill>
             </div>
 
-            <div className="mt-5 mb-2.5 flex items-center gap-2">
-              <div className={`text-[13px] font-extrabold tracking-tight ${deva}`}>{t.opps}</div>
-              <Pill tone="navy">{home.opportunities.length}</Pill>
-            </div>
-
-            {home.opportunities.map((o: any) => (
-              <button key={o.id} onClick={() => openOpp(o.play)}
-                className="mb-2.5 flex w-full gap-3 rounded-[16px] border border-[#e6ebf3] bg-white p-3.5 text-left transition hover:border-[#c6d7f5] elev">
-                <div className={`mt-0.5 w-[3px] shrink-0 rounded-full ${o.kind === "loan" ? "bg-[#f79009]" : "bg-[#002970]"}`} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className={`text-[13.5px] font-extrabold leading-snug tracking-tight ${deva}`}>{o.headline}</div>
-                    {o.kind === "loan" ? <Pill tone="amber">loan</Pill> : <Pill tone="green">+{inr(o.score)}</Pill>}
+            {home.opportunities.map((o: any) => {
+              const [ic, bg, fg] = ICON_FOR[o.play] || ICON_FOR.winback;
+              return (
+                <button key={o.id} onClick={() => openOpp(o.play)}
+                  className="block w-full rounded-2xl border border-[#E8EDF3] bg-white px-3.5 pb-3 pt-3.5 text-left transition hover:border-[#9ADCF3]">
+                  <div className="flex gap-2.5">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px]" style={{ background: bg }}>
+                      <Icon name={ic} size={19} color={fg} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="deva text-[15px] font-bold leading-[20px]">{o.headline}</div>
+                      <div className="deva mt-0.5 line-clamp-2 text-[12.5px] leading-[17px] text-[#667085]">{o.why}</div>
+                    </div>
                   </div>
-                  <div className={`mt-1 line-clamp-2 text-[11.5px] leading-snug text-[#5b6b84] ${deva}`}>{o.why}</div>
-                  <div className={`mt-2.5 flex items-center gap-1 text-[11.5px] font-extrabold text-[#002970] ${deva}`}>
-                    {o.action_label}
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4"
-                      strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5" /></svg>
+                  <div className="my-2.5 h-px bg-[#EEF2F6]" />
+                  <div className="flex items-center justify-between">
+                    {o.kind === "loan" ? <Pill bg="#FFFAEB" fg="#B54708">{t.partnerLoan}</Pill>
+                      : <Pill bg="#ECFDF3" fg="#067647">+{inr(o.score)} {t.perMonth}</Pill>}
+                    <span className="deva text-[13.5px] font-extrabold text-[#00A3DB]">{o.action_label} ›</span>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
 
             {home.campaigns.length > 0 && (
               <>
-                <div className={`mt-5 mb-2.5 text-[13px] font-extrabold tracking-tight ${deva}`}>{t.running}</div>
+                <div className="deva px-0.5 pt-1 text-[14px] font-extrabold">{t.running}</div>
                 {home.campaigns.map((c: any) => (
-                  <div key={c.id} className="mb-2 flex items-center justify-between rounded-[14px] border border-[#e6ebf3] bg-white px-3.5 py-3">
-                    <div>
-                      <div className="text-[12px] font-extrabold">{c.id}</div>
-                      <div className="tnum text-[10px] font-semibold text-[#8a98ad]">
-                        {c.sent_to} sent · {c.held_back} held back
-                      </div>
-                    </div>
-                    <Pill tone={c.status === "done" ? "green" : "navy"}>{c.status}</Pill>
-                  </div>
+                  <Card key={c.id} className="flex items-center justify-between px-3.5 py-3">
+                    <div className="tnum text-[12.5px] font-bold">{c.id} <span className="font-medium text-[#667085]">· {c.sent_to} / {c.held_back}</span></div>
+                    <Pill bg={c.status === "done" ? "#ECFDF3" : C.skyL} fg={c.status === "done" ? "#067647" : C.navy}>{c.status}</Pill>
+                  </Card>
                 ))}
               </>
             )}
           </div>
-          <Nav />
-        </>
-      )}
 
-      {screen === "detail" && opp && (
-        <>
-          <Bar title={t.evidence} back={() => setScreen("home")} />
-          <div className="flex-1 overflow-y-auto px-4 py-4 no-scrollbar">
-            <div className={`text-[19px] font-extrabold leading-tight tracking-tight ${deva}`}>{opp.headline}</div>
-            <div className={`mt-1.5 text-[12.5px] leading-relaxed text-[#5b6b84] ${deva}`}>{opp.why}</div>
-
-            <div className="mt-4 rounded-[16px] border border-[#e6ebf3] bg-white p-3 elev">
-              {opp.play === "winback" && <WeeklyCustomers data={opp.charts.weekly_customers} />}
-              {opp.play === "dead_hours" && <Hourly data={opp.charts.hourly} />}
-              {opp.play === "low_ticket" && <Compare data={opp.charts.ticket} unit="inr" />}
-              {opp.play === "winback" && <Compare data={opp.charts.repeat_rate} />}
-              <div className="mt-1.5 text-center text-[9.5px] font-semibold text-[#a9b4c6]">
-                {opp.play === "winback" ? `Weekly visits from these ${opp.evidence.lapsed_regulars} customers · repeat rate vs nearby`
-                  : opp.play === "dead_hours" ? "Share of weekday sales by hour — you vs nearby"
-                  : "Median bill vs nearby shops"}
-              </div>
-            </div>
-
-            <Label className="mt-4 mb-2">The evidence</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {evidenceRows(opp.play, opp.evidence, opp.provenance).map(([label, value, ref]: any, i: number) => (
-                <Traceable key={i} label={label} value={value}
-                  onTap={ref ? async () => setProv(await api.provenance(ref)) : undefined} />
-              ))}
-            </div>
-
-            <div className="mt-4 rounded-[16px] border border-[#c6d7f5] bg-[#f7faff] p-3.5">
-              <Label>{t.offer}</Label>
-              <div className={`mt-1.5 text-[12.5px] font-semibold leading-snug text-[#2b3a52] ${deva}`}>
-                {opp.play === "winback" && <>{inr(opp.evidence.cashback)} cashback on a bill of {inr(opp.evidence.min_bill)} or more, for {opp.evidence.valid_days} days.</>}
-                {opp.play === "dead_hours" && <>{opp.evidence.discount_pct}% off between {opp.charts.window.from} and {opp.charts.window.to}, up to {inr(opp.evidence.max_discount)}.</>}
-                {opp.play === "low_ticket" && <>{inr(opp.evidence.cashback)} back when the bill reaches {inr(opp.evidence.spend_target)}.</>}
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-[#dbe5f7] pt-2.5">
-                {[["Customers", opp.audience_size], ["Max spend", inr(opp.action.budget_cap)],
-                  ["Est. return", `+${inr(opp.evidence.est_extra_sales_month || opp.evidence.est_extra_sales)}`]]
-                  .map(([k, v]: any) => (
-                  <div key={k}>
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-[#8a98ad]">{k}</div>
-                    <div className={`tnum text-[13px] font-extrabold ${k === "Est. return" ? "text-[#067647]" : ""}`}>{v}</div>
+          <div className="shrink-0 border-t border-[#E8EDF3] bg-white pb-2 pt-2">
+            <div className="flex items-center justify-between px-5">
+              {[["home", t.nav[0], true], ["clock", t.nav[1]], ["qr", "Scan QR"], ["briefcase", t.nav[2]], ["user", t.nav[3]]].map(([ic, label, on]: any) =>
+                ic === "qr" ? (
+                  <div key={ic} className="flex flex-col items-center gap-[3px]">
+                    <div className="grid h-[52px] w-[52px] place-items-center rounded-full bg-[#00BAF2] shadow-[0_6px_14px_-4px_rgba(0,186,242,.55)]">
+                      <Icon name="qr" size={24} color="#fff" />
+                    </div>
+                    <span className="text-[10px] font-bold text-[#002E6E]">{label}</span>
+                  </div>
+                ) : (
+                  <div key={ic} className="flex flex-col items-center gap-1">
+                    <Icon name={ic} size={22} color={on ? C.navy : "#98A2B3"} stroke={on ? 2.2 : 1.8} />
+                    <span className={`deva text-[10.5px] ${on ? "font-bold text-[#002E6E]" : "font-semibold text-[#98A2B3]"}`}>{label}</span>
                   </div>
                 ))}
-              </div>
             </div>
-          </div>
-          <div className="flex gap-2 border-t border-[#e6ebf3] bg-white px-4 pb-5 pt-3">
-            <Btn kind="ghost" className="flex-1" onClick={() => setScreen("home")}>{t.notNow}</Btn>
-            <Btn className="flex-[2]" onClick={() => setConfirm(true)}>{t.approve}</Btn>
+            <div className="mx-auto mt-2 h-[5px] w-[134px] rounded-full bg-[#101828]" />
           </div>
         </>
       )}
 
+      {/* ------------------------------ EVIDENCE ------------------------------ */}
+      {screen === "detail" && opp && (() => {
+        const w = opp.charts.weekly_customers;
+        const drop = w ? w.findIndex((d: any, i: number) => i > 0 && d.these_customers === 0 && w[i - 1].these_customers > 0) : -1;
+        return (
+          <>
+            <Bar title={t.details} />
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4 no-scrollbar">
+              <div className="deva text-[21px] font-extrabold leading-[27px]">{opp.headline}</div>
+              <div className="deva text-[13.5px] leading-[20px] text-[#475467]">{opp.why}</div>
+
+              <Card className="px-3.5 pb-3 pt-3.5">
+                {opp.play === "winback" && (
+                  <>
+                    <div className="deva mb-2 text-[13px] font-bold text-[#344054]">{t.visitsOf(opp.evidence.lapsed_regulars)}</div>
+                    <ResponsiveContainer width="100%" height={120}>
+                      <AreaChart data={w} margin={{ top: 6, right: 4, bottom: 0, left: -30 }}>
+                        <defs><linearGradient id="skyfade" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={C.sky} stopOpacity={0.25} /><stop offset="100%" stopColor={C.sky} stopOpacity={0} />
+                        </linearGradient></defs>
+                        <CartesianGrid stroke="#EEF2F6" vertical={false} />
+                        <XAxis dataKey="week" hide />
+                        <YAxis tick={{ fontSize: 10, fill: "#98A2B3" }} axisLine={false} tickLine={false} width={34} />
+                        <Tooltip contentStyle={{ fontSize: 11, borderRadius: 10 }} />
+                        {drop > 0 && opp.evidence.moved_to_new_shop && (
+                          <ReferenceLine x={w[drop].week} stroke="#F79009" strokeWidth={1.5}
+                            label={{ value: t.rival, position: "insideTopLeft", fill: "#B54708", fontSize: 10.5, fontWeight: 700 }} />
+                        )}
+                        <Area type="linear" dataKey="these_customers" stroke={C.navy} strokeWidth={2.5} fill="url(#skyfade)" name="visits" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                    <div className="deva flex justify-between text-[10px] font-medium text-[#98A2B3]"><span>{t.weeksAgo}</span><span>{t.thisWeek}</span></div>
+                  </>
+                )}
+                {opp.play === "dead_hours" && <Hourly data={opp.charts.hourly} />}
+                {opp.play === "low_ticket" && (
+                  <div className="space-y-3 py-1">
+                    {opp.charts.ticket.map((d: any, i: number) => (
+                      <div key={i}>
+                        <div className="deva mb-1 flex justify-between text-[12.5px]"><span className="font-semibold text-[#475467]">{i === 0 ? (lang === "hi" ? "आप" : "You") : (lang === "hi" ? "आसपास की दुकानें" : "Nearby shops")}</span><b className="tnum">{inr(d.value)}</b></div>
+                        <div className="h-2.5 overflow-hidden rounded-full bg-[#EEF2F6]"><div className="h-full rounded-full" style={{ width: `${d.value / Math.max(...opp.charts.ticket.map((x: any) => x.value)) * 100}%`, background: i === 0 ? C.navy : "#98A2B3" }} /></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <div className="grid grid-cols-2 gap-2">
+                {tiles(opp.play, opp.evidence, lang).map(([big, label, provKey]: any, i: number) => {
+                  const ref = provKey && opp.provenance?.[provKey];
+                  return (
+                    <button key={i} disabled={!ref} onClick={async () => ref && setProv(await api.provenance(ref))}
+                      className={`rounded-xl border px-3 py-2.5 text-left ${ref ? "border-[#9ADCF3] bg-[#F0FAFE] hover:border-[#00BAF2]" : "border-[#E8EDF3] bg-white"}`}>
+                      <div className="tnum text-[19px] font-extrabold text-[#002E6E]">{big}</div>
+                      <div className="deva text-[11.5px] font-medium leading-[15px] text-[#667085]">{label}</div>
+                      {ref && <div className="deva mt-1 text-[11px] font-bold text-[#00A3DB]">{t.viewPay} ›</div>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-[14px] border border-[#B9E6F7] bg-[#E5F7FE] px-3.5 py-3">
+                <div className="deva text-[11px] font-bold text-[#0086B3]">{t.offer}</div>
+                <div className="deva mt-1 text-[14px] font-bold">{offerLine(opp.play, opp.evidence, lang)}</div>
+                <div className="mt-2.5 flex justify-between">
+                  {[[t.people, opp.audience_size, C.ink], [t.maxSpend, inr(opp.action.budget_cap), C.ink],
+                    [t.estimate, `+${inr(opp.evidence.est_extra_sales_month || opp.evidence.est_extra_sales)}`, "#067647"]].map(([k, v, c]: any) => (
+                    <div key={k}><div className="deva text-[10.5px] font-medium text-[#667085]">{k}</div><div className="tnum text-[14.5px] font-extrabold" style={{ color: c }}>{v}</div></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <Footer>
+              <div className="flex gap-2.5">
+                <button onClick={() => setScreen("home")} className="deva flex-1 rounded-xl border border-[#D0D5DD] bg-white py-3.5 text-[15px] font-bold text-[#344054]">{t.notNow}</button>
+                <Primary className="flex-[2]" onClick={() => setConfirm(true)}>{t.approve}</Primary>
+              </div>
+            </Footer>
+          </>
+        );
+      })()}
+
+      {/* ------------------------------ SENT ------------------------------ */}
       {screen === "sent" && camp && (
         <>
-          <Bar title={t.sent} back={() => setScreen("home")} />
-          <div className="flex flex-1 flex-col items-center justify-center px-7 text-center">
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-[#ecfdf3] text-[#067647]">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"
-                strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+          <Bar title={t.live} />
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-5 no-scrollbar">
+            <div className="flex flex-col items-center text-center">
+              <div className="grid h-[60px] w-[60px] place-items-center rounded-full bg-[#ECFDF3]"><Icon name="check" size={30} color="#12B76A" stroke={2.6} /></div>
+              <div className="deva mt-2 text-[20px] font-extrabold">{t.sent}</div>
+              <div className="deva mt-0.5 text-[13px] text-[#667085]">{t.reached(camp.sent_to, inr(camp.offer.cashback || camp.offer.discount_pct || 0))}</div>
             </div>
-            <div className={`mt-4 text-[17px] font-extrabold tracking-tight ${deva}`}>{t.sent}</div>
-            <div className="mt-2 text-[12.5px] leading-relaxed text-[#5b6b84]">
-              Sent to <b className="text-[#0b1b33]">{camp.sent_to}</b> customers.{" "}
-              <b className="text-[#0b1b33]">{camp.held_back}</b> were deliberately left out as a control
-              group, so we can measure what the offer really did.
-            </div>
-            <div className="tnum mt-3 rounded-lg bg-[#f1f4f9] px-3 py-1.5 text-[11px] font-bold text-[#5b6b84]">
-              capped at {inr(camp.budget_cap)}
-            </div>
-            <Btn kind="accent" className="mt-6 w-full" onClick={doForward} disabled={busy}>
-              {busy ? "Simulating…" : t.ff}
-            </Btn>
-            <div className="mt-2 text-[10px] font-semibold text-[#a9b4c6]">demo control — plays the fortnight forward</div>
-          </div>
-        </>
-      )}
-
-      {screen === "result" && result && (
-        <>
-          <Bar title={t.results} back={() => setScreen("home")} />
-          <div className="flex-1 overflow-y-auto px-4 py-4 no-scrollbar">
-            <div className="rounded-[16px] border border-[#e6ebf3] bg-white p-3 elev">
-              <Compare data={result.result.chart} keyName="rate" />
-              <div className="mt-1.5 text-center text-[9.5px] font-semibold text-[#a9b4c6]">
-                Came back within {result.result.days} days
-              </div>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {[[t.got, `${result.result.treatment.returned}/${result.result.treatment.customers}`, "#0b1b33", "white"],
-                [t.control, `${result.result.holdout.returned}/${result.result.holdout.customers}`, "#a9b4c6", "white"],
-                [t.extra, inr(result.result.incremental_sales), "#067647", "#ecfdf3"],
-                [t.spent, inr(result.result.spent), "#0b1b33", "#f1f4f9"]].map(([k, v, c, bg]: any) => (
-                <div key={k} className="rounded-[14px] border border-[#e6ebf3] p-3" style={{ background: bg }}>
-                  <div className={`text-[10px] font-bold text-[#5b6b84] ${deva}`}>{k}</div>
-                  <div className="tnum mt-0.5 text-[20px] font-extrabold tracking-tight" style={{ color: c }}>{v}</div>
+            <Card className="flex justify-between px-6 py-3.5">
+              {[[camp.sent_to, t.sentN], [camp.held_back, t.control], [inr(camp.budget_cap), t.cap]].map(([v, k]: any) => (
+                <div key={k} className="text-center"><div className="tnum text-[19px] font-extrabold text-[#002E6E]">{v}</div><div className="deva text-[11.5px] font-medium text-[#667085]">{k}</div></div>
+              ))}
+            </Card>
+            {notes[0] && (
+              <Card className="space-y-2 bg-[#F9FAFB] p-3.5">
+                <div className="deva text-[11.5px] font-bold text-[#667085]">{t.preview}</div>
+                <div className="flex items-center gap-2.5 rounded-xl bg-white p-3 shadow-[0_4px_12px_-4px_rgba(16,24,40,.12)]">
+                  <div className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] bg-[#002E6E] text-[17px] font-extrabold text-[#00BAF2]">p</div>
+                  <div className="deva text-[12.5px] font-semibold leading-snug">{lang === "hi" ? notes[0].text_hi : notes[0].text_en}</div>
+                </div>
+              </Card>
+            )}
+            <Card className="space-y-2.5 p-3.5">
+              {[[t.today, t.sentStep, true], [lang === "hi" ? `${camp.offer.valid_days} दिन` : `Day ${camp.offer.valid_days}`, t.endStep], [lang === "hi" ? "14 दिन" : "Day 14", t.resultStep]].map(([w, what, on]: any) => (
+                <div key={what} className="flex items-center gap-2.5">
+                  <span className={`h-2.5 w-2.5 rounded-full ${on ? "bg-[#12B76A]" : "bg-[#D0D5DD]"}`} />
+                  <span className="deva w-12 text-[12px] font-bold text-[#667085]">{w}</span>
+                  <span className={`deva text-[13.5px] ${on ? "font-bold" : "font-medium text-[#475467]"}`}>{what}</span>
                 </div>
               ))}
-            </div>
-            {result.result.return_per_rupee && (
-              <div className="mt-3 rounded-[16px] bg-gradient-to-br from-[#002970] to-[#0b4aa8] p-4 text-center text-white">
-                <div className="tnum text-[28px] font-extrabold leading-none tracking-tight">
-                  {inr(result.result.return_per_rupee)}
-                </div>
-                <div className="mt-1 text-[10.5px] font-semibold text-white/70">extra sales for every ₹1 spent</div>
-              </div>
-            )}
-            <div className="mt-3 rounded-[14px] border border-[#fedf89] bg-[#fffaeb] p-3 text-[11px] font-medium leading-relaxed text-[#b54708]">
-              {result.result.note}
-            </div>
-            <Btn kind="ghost" className="mt-3 w-full" onClick={() => onSpeak?.(result.speech)}>{t.speak}</Btn>
+            </Card>
           </div>
+          <Footer>
+            <button onClick={doForward} disabled={busy}
+              className="deva flex w-full items-center justify-center gap-2 rounded-xl bg-[#002E6E] py-3.5 text-[15px] font-bold text-white disabled:opacity-50">
+              <Icon name="forward" size={16} color="#fff" /> {busy ? "…" : t.ff}
+            </button>
+            <div className="deva mt-1.5 text-center text-[11px] font-medium text-[#98A2B3]">{t.demo}</div>
+          </Footer>
         </>
       )}
 
-      {screen === "loan" && loan && opp && (
-        <>
-          <Bar title="Working capital" back={() => setScreen("home")} />
-          <div className="flex-1 overflow-y-auto px-4 py-4 no-scrollbar">
-            <div className={`text-[17px] font-extrabold leading-tight tracking-tight ${deva}`}>{opp.headline}</div>
-            <div className={`mt-1.5 text-[12.5px] leading-relaxed text-[#5b6b84] ${deva}`}>{opp.why}</div>
-            <div className="mt-3 rounded-[16px] border border-[#e6ebf3] bg-white p-3 elev">
-              <Forecast data={opp.charts.forecast} />
-              <div className="mt-1.5 text-center text-[9.5px] font-semibold text-[#a9b4c6]">
-                Next 30 days — amber is {opp.charts.festival_name}
+      {/* ------------------------------ RESULTS ------------------------------ */}
+      {screen === "result" && result && (() => {
+        const r = result.result;
+        return (
+          <>
+            <Bar title={t.results} />
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4 no-scrollbar">
+              <div className="rounded-2xl p-4 text-white" style={{ background: "linear-gradient(135deg,#002E6E,#0067B8)" }}>
+                <div className="deva text-[13px] font-medium text-white/75">{t.extra}</div>
+                <div className="tnum text-[34px] font-extrabold leading-tight">{inr(r.incremental_sales)}</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="deva tnum text-[13px] text-white/75">{t.spent} {inr(r.spent)}</span>
+                  {r.return_per_rupee && <span className="deva tnum rounded-md bg-white/15 px-2 py-0.5 text-[12px] font-bold text-[#7FF0C8]">{t.perRupee(inr(r.return_per_rupee))}</span>}
+                </div>
               </div>
-            </div>
-            <div className="mt-3 rounded-[16px] border border-[#fedf89] bg-[#fffaeb] p-3.5">
-              <div className="tnum text-[28px] font-extrabold leading-none tracking-tight">{inr(loan.amount)}</div>
-              <div className="mt-1 text-[11px] font-semibold text-[#b54708]">from {loan.partner}</div>
-              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-[#fedf89] pt-2.5 text-[11px]">
-                {[["Tenure", `${loan.tenure_days} days`], ["Rate", `${loan.monthly_rate_pct}%/month`],
-                  ["Fee", inr(loan.processing_fee)], ["Total", inr(loan.total_repayable)]].map(([k, v]: any) => (
-                  <div key={k} className="flex justify-between"><span className="text-[#8a6a2f]">{k}</span>
-                    <b className="tnum text-[#7a4a06]">{v}</b></div>
+              <Card className="space-y-3 p-3.5">
+                <div className="deva text-[13.5px] font-bold text-[#344054]">{t.returned}</div>
+                {[[t.got, r.treatment, C.navy], [t.ctrl, r.holdout, "#98A2B3"]].map(([label, g, color]: any) => (
+                  <div key={label}>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="deva text-[12.5px] font-semibold text-[#475467]">{label}</span>
+                      <span className="tnum"><b className="text-[15px]" style={{ color }}>{g.returned}</b><span className="text-[12px] font-semibold text-[#98A2B3]"> /{g.customers} · {g.return_rate}%</span></span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-[#EEF2F6]"><div className="h-full rounded-full" style={{ width: `${g.return_rate}%`, background: color }} /></div>
+                  </div>
                 ))}
+              </Card>
+              <div className="flex gap-2 rounded-xl border border-[#FEDF89] bg-[#FFFAEB] px-3 py-2.5">
+                <Icon name="alert" size={17} color="#B54708" stroke={2.2} className="mt-px shrink-0" />
+                <span className="deva text-[12.5px] font-medium leading-[17px] text-[#93370D]">{r.holdout.customers < 30 ? t.smallNote : t.bigNote}</span>
               </div>
-              <div className="tnum mt-2.5 rounded-lg bg-white px-2.5 py-2 text-[11px] font-semibold text-[#5b6b84]">
-                {inr(loan.daily_repayment)} deducted daily from your settlements
+              <div className="rounded-2xl border border-[#B9E6F7] bg-[#F0FAFE] p-3.5">
+                <div className="deva flex items-center gap-1.5 text-[12px] font-bold text-[#0086B3]"><Icon name="volume" size={16} color="#0086B3" /> {t.announced}</div>
+                <div className="deva mt-1.5 text-[13.5px] font-medium leading-[20px]">“{result.speech}”</div>
               </div>
             </div>
-            <Label className="mt-4 mb-2">Key facts</Label>
-            <ul className="space-y-2">
-              {loan.disclosures.map((d: string, i: number) => (
-                <li key={i} className="flex gap-2 text-[11px] leading-relaxed text-[#5b6b84]">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#a9b4c6]" />{d}
-                </li>
-              ))}
-            </ul>
-            <label className="mt-3 flex items-start gap-2.5 rounded-[14px] border border-[#e6ebf3] bg-white p-3 text-[11px] leading-snug text-[#5b6b84]">
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-[#002970]" />
-              I agree to share my Paytm sales data with {loan.partner} for this application.
-            </label>
-            {applied && (
-              <div className="mt-3 rounded-[14px] border border-[#abefc6] bg-[#ecfdf3] p-3 text-[11px] leading-relaxed text-[#067647]">
-                {applied.message}
+            <Footer><Primary onClick={() => onSpeak?.(result.speech)}><Icon name="play" size={14} color="#fff" stroke={2.6} /> {t.replay}</Primary></Footer>
+          </>
+        );
+      })()}
+
+      {/* ------------------------------ LOAN ------------------------------ */}
+      {screen === "loan" && loan && opp && (() => {
+        const f = opp.charts.forecast, mx = Math.max(...f.map((x: any) => x.sales));
+        const facts = lang === "hi" ? [
+          `लोन ${loan.partner} देता है। Paytm सिर्फ़ जोड़ता है, लोन देने वाला नहीं।`,
+          `ब्याज ${loan.monthly_rate_pct}% प्रति माह घटते बैलेंस पर, और एक बार ${inr(loan.processing_fee)} फ़ीस।`,
+          "आपकी सहमति के बिना कुछ नहीं भेजा जाता। पैसा लेंडर की मंज़ूरी के बाद ही आता है।",
+        ] : [loan.disclosures[0], loan.disclosures[1], loan.disclosures[3]];
+        return (
+          <>
+            <Bar title={t.loanT} />
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-3.5 no-scrollbar">
+              <div className="deva text-[18px] font-extrabold leading-[24px]">{opp.headline}</div>
+              <Card className="p-3.5">
+                <div className="deva mb-2 text-[12.5px] font-bold text-[#344054]">{t.forecast}</div>
+                <div className="flex h-[66px] items-end gap-[2px]">
+                  {f.map((d: any, i: number) => <div key={i} className="flex-1 rounded-t-[2px]" style={{ height: `${d.sales / mx * 100}%`, background: d.festival ? "#F79009" : "#D0D5DD" }} />)}
+                </div>
+                <div className="deva mt-2 flex items-center gap-1.5 text-[11.5px] font-semibold text-[#667085]">
+                  <span className="h-2 w-2 rounded-[2px] bg-[#F79009]" /> {t.lift(lang === "hi" ? "नवरात्रि" : opp.charts.festival_name, opp.evidence.expected_uplift_pct)}
+                </div>
+              </Card>
+              <div className="rounded-2xl border border-[#FEDF89] bg-[#FFFAEB] p-3.5">
+                <div className="flex items-center justify-between">
+                  <div><div className="tnum text-[28px] font-extrabold leading-tight">{inr(loan.amount)}</div><div className="deva text-[12px] font-semibold text-[#B54708]">{t.from(loan.partner)}</div></div>
+                  <div className="text-right"><div className="deva tnum text-[14px] font-extrabold text-[#7A2E0E]">{inr(loan.daily_repayment)} {t.perDay}</div><div className="deva text-[11px] font-medium text-[#93370D]">{t.fromSettle(loan.tenure_days)}</div></div>
+                </div>
+                <div className="mt-2.5 flex justify-between">
+                  {[[t.interest, `${loan.monthly_rate_pct}%/${lang === "hi" ? "माह" : "mo"}`], [t.fee, inr(loan.processing_fee)], [t.total, inr(loan.total_repayable)]].map(([k, v]: any) => (
+                    <div key={k}><div className="deva text-[11px] font-medium text-[#93370D]">{k}</div><div className="deva tnum text-[13.5px] font-bold text-[#7A2E0E]">{v}</div></div>
+                  ))}
+                </div>
               </div>
-            )}
+              <Card className="space-y-1.5 p-3.5">
+                <div className="deva text-[13px] font-bold">{t.facts}</div>
+                {facts.map((x: string, i: number) => (
+                  <div key={i} className="flex gap-2"><span className="mt-[7px] h-[5px] w-[5px] shrink-0 rounded-full bg-[#98A2B3]" /><span className="deva text-[12px] leading-4 text-[#475467]">{x}</span></div>
+                ))}
+              </Card>
+              {applied && <div className="deva rounded-xl border border-[#ABEFC6] bg-[#ECFDF3] p-3 text-[12px] leading-[17px] text-[#067647]">{t.appliedMsg}</div>}
+            </div>
+            <Footer>
+              <label className="mb-2.5 flex cursor-pointer items-center gap-2.5">
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="h-5 w-5 shrink-0 accent-[#00BAF2]" />
+                <span className="deva text-[11.5px] font-medium leading-[15px] text-[#475467]">{t.consent}</span>
+              </label>
+              <Primary disabled={!consent || applied} onClick={async () => { await api.applyLoan(mid); setApplied(true); }}>
+                {applied ? t.applied : t.apply}
+              </Primary>
+            </Footer>
+          </>
+        );
+      })()}
+
+      {/* ------------------------------ SOUNDBOX (in app) ------------------------------ */}
+      {screen === "soundbox" && (
+        <>
+          <Bar title={t.sbTitle} />
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4 no-scrollbar">
+            <Card className="flex items-center gap-3.5 p-3.5">
+              <div className="relative h-[92px] w-[66px] shrink-0 overflow-hidden rounded-2xl" style={{ background: "linear-gradient(#0E3D72,#03203F)" }}>
+                <div className="tnum absolute left-2 right-2 top-2 rounded bg-[#03131F] px-1 py-0.5 text-[8.5px] font-extrabold text-[#7FE0FF]">{inr(s.today_gmv)}</div>
+                <div className="absolute left-[14px] top-[34px] h-[38px] w-[38px] rounded-full bg-[#0A2137]"
+                  style={{ backgroundImage: "radial-gradient(#1E4A74 1.3px, transparent 1.4px)", backgroundSize: "7px 7px" }} />
+                <div className="absolute left-[22px] top-[79px] h-[6px] w-[22px] rounded-full bg-[#123F6D]" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[15.5px] font-extrabold">Paytm Soundbox</div>
+                <div className="deva mt-1 flex items-center gap-1.5 text-[12px] font-semibold text-[#067647]"><span className="h-2 w-2 rounded-full bg-[#12B76A]" />{t.linked}</div>
+                <div className="deva tnum mt-1 text-[12px] font-medium text-[#667085]">{t.announcedToday(s.today_txns)}</div>
+              </div>
+            </Card>
+
+            <Card className="space-y-3 p-3.5">
+              <div className="flex items-center gap-2">
+                <div className="grid h-[22px] w-[22px] place-items-center rounded-md bg-[#002E6E]"><Icon name="sparkle" size={13} color="#fff" stroke={2.2} /></div>
+                <div className="deva text-[14px] font-bold">{t.voice}</div>
+              </div>
+              {t.toggles.map(([label, sub]: any, i: number) => (
+                <div key={label} className="flex items-center gap-2.5">
+                  <div className="flex-1"><div className="deva text-[13.5px] font-semibold">{label}</div><div className="deva text-[11.5px] text-[#667085]">{sub}</div></div>
+                  <button onClick={() => setToggles((v) => v.map((x, j) => (j === i ? !x : x)))}
+                    className={`relative h-6 w-10 rounded-full transition ${toggles[i] ? "bg-[#00BAF2]" : "bg-[#D0D5DD]"}`}>
+                    <span className={`absolute top-[3px] h-[18px] w-[18px] rounded-full bg-white transition-all ${toggles[i] ? "left-[19px]" : "left-[3px]"}`} />
+                  </button>
+                </div>
+              ))}
+            </Card>
+
+            <Card className="space-y-2.5 p-3.5">
+              <div className="deva text-[14px] font-bold">{t.recent}</div>
+              <div className="flex gap-2.5">
+                <button onClick={() => onSpeak?.(home.briefing)} className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-[#E5F7FE]"><Icon name="play" size={12} color="#0086B3" stroke={2.4} /></button>
+                <div><div className="deva text-[11px] font-bold text-[#0086B3]">{t.saathiTag}</div><div className="deva text-[12.5px] font-medium leading-[17px] text-[#344054]">{home.briefing}</div></div>
+              </div>
+              {recent.slice(0, 3).map((p: any, i: number) => (
+                <div key={i} className="flex gap-2.5">
+                  <button onClick={() => onSpeak?.(t.received(inr(p.amount)))} className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-[#F2F4F7]"><Icon name="play" size={12} color="#667085" stroke={2.4} /></button>
+                  <div><div className="deva tnum text-[11px] font-bold text-[#98A2B3]">{p.time} · {t.payTag}</div><div className="deva tnum text-[12.5px] font-medium text-[#344054]">{t.received(inr(p.amount))}</div></div>
+                </div>
+              ))}
+            </Card>
           </div>
-          <div className="border-t border-[#e6ebf3] bg-white px-4 pb-5 pt-3">
-            <Btn className="w-full" disabled={!consent || !!applied}
-              onClick={async () => setApplied(await api.applyLoan(mid))}>
-              {applied ? "Application sent" : "Apply through partner"}
-            </Btn>
-          </div>
+          <Footer><Primary onClick={() => onSpeak?.(home.briefing)}><Icon name="volume" size={17} color="#fff" stroke={2.2} /> {t.playNow}</Primary></Footer>
         </>
       )}
 
-      <Sheet open={confirm} onClose={() => setConfirm(false)} title="Before this goes out">
-        <div className="space-y-2.5 text-[12px] leading-relaxed text-[#5b6b84]">
-          <p>Going to <b className="text-[#0b1b33]">{opp?.audience_size}</b> customers, with{" "}
-            <b className="text-[#0b1b33]">20%</b> deliberately held back so we can prove what the offer caused.</p>
-          <p>Spending is capped at <b className="text-[#0b1b33]">{inr(opp?.action?.budget_cap || 0)}</b>. Nothing beyond that can go out.</p>
+      {/* ------------------------------ SHEETS ------------------------------ */}
+      {confirm && opp && (
+        <div className="absolute inset-0 z-30 flex items-end" onClick={() => setConfirm(false)}>
+          <div className="absolute inset-0 bg-[#101828]/45" />
+          <div className="relative w-full rounded-t-3xl bg-white px-5 pb-7 pt-2.5" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#D0D5DD]" />
+            <div className="deva mb-3.5 text-[18px] font-extrabold">{t.before}</div>
+            {(() => {
+              const n = opp.audience_size, hold = Math.max(1, Math.round(n * 0.2));
+              return [["users", t.sendTo(n - hold), t.holdout(hold)], ["lock", t.capT(inr(opp.action.budget_cap)), t.capS], ["soundbox", t.sbT, t.sbS]];
+            })().map(([ic, head, sub]: any) => (
+              <div key={ic} className="mb-3.5 flex gap-3">
+                <div className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] bg-[#E5F7FE]"><Icon name={ic} size={19} color={C.navy} /></div>
+                <div><div className="deva text-[14.5px] font-bold">{head}</div><div className="deva text-[12.5px] leading-[17px] text-[#667085]">{sub}</div></div>
+              </div>
+            ))}
+            <Primary onClick={doApprove} disabled={busy}>{busy ? "…" : t.confirm(inr(opp.action.budget_cap))}</Primary>
+          </div>
         </div>
-        <Btn className="mt-4 w-full" onClick={doApprove} disabled={busy}>
-          {busy ? "Sending…" : `${t.approve} · ${inr(opp?.action?.budget_cap || 0)} max`}
-        </Btn>
-      </Sheet>
+      )}
 
-      <Sheet open={!!prov} onClose={() => setProv(null)} title={prov?.label}>
-        <div className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-[#8a98ad]">
-          {prov?.count} rows · showing {prov?.rows?.length}
-        </div>
-        <div className="space-y-1">
-          {prov?.rows?.map((r: any, i: number) => (
-            <div key={i} className="flex items-center justify-between rounded-lg bg-[#f7f9fc] px-2.5 py-2 text-[10.5px]">
-              <span className="font-mono font-semibold text-[#5b6b84]">{r.customer}</span>
-              <span className="text-[#8a98ad]">{r.when || `${r.visits} visits · ${r.last_seen}`}</span>
-              <span className="tnum font-extrabold text-[#0b1b33]">{inr(r.amount ?? r.avg_bill)}</span>
+      {prov && (
+        <div className="absolute inset-0 z-30 flex items-end" onClick={() => setProv(null)}>
+          <div className="absolute inset-0 bg-[#101828]/45" />
+          <div className="relative max-h-[78%] w-full overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-2.5 no-scrollbar" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#D0D5DD]" />
+            <div className="deva text-[17px] font-extrabold">{prov.label}</div>
+            <div className="deva mt-1 flex items-center gap-1.5 text-[11.5px] font-medium text-[#667085]"><Icon name="lock" size={13} color="#667085" stroke={2.2} /> {t.proofMasked(Math.min(prov.rows.length, 8), prov.count)}</div>
+            <div className="deva mt-3 grid grid-cols-[92px_60px_1fr_auto] px-3 text-[10.5px] font-bold text-[#98A2B3]">{t.cols.map((c: string) => <span key={c} className={c === t.cols[3] ? "text-right" : ""}>{c}</span>)}</div>
+            <div className="mt-1.5 space-y-1.5">
+              {prov.rows.slice(0, 8).map((r: any, i: number) => (
+                <div key={i} className="grid grid-cols-[92px_60px_1fr_auto] items-center rounded-[10px] bg-[#F9FAFB] px-3 py-2.5">
+                  <span className="font-mono text-[11.5px] text-[#475467]">{r.customer}</span>
+                  <b className="tnum text-[13px]">{r.visits ?? "—"}</b>
+                  <span className="deva text-[12px] font-medium text-[#667085]">{r.when || t.daysAgo(r.last_seen)}</span>
+                  <b className="tnum text-right text-[13px] text-[#002E6E]">{inr(r.amount ?? r.avg_bill)}</b>
+                </div>
+              ))}
             </div>
-          ))}
+            <div className="deva mt-3 text-[11px] font-medium text-[#98A2B3]">{t.source}</div>
+          </div>
         </div>
-      </Sheet>
+      )}
     </div>
   );
 }

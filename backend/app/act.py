@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import itertools
+import zlib
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -27,6 +28,11 @@ RESPONSE = {
 }
 
 _ids = itertools.count(1)
+
+
+def _seed(key: str) -> int:
+    """Stable across processes -- Python's own hash() is salted per run."""
+    return zlib.crc32(key.encode())
 
 
 @dataclass
@@ -56,18 +62,18 @@ class Campaign:
 
 def offer_text(ctype: str, offer: dict, shop: str, lang: str = "en") -> str:
     if ctype == "winback":
-        return (f"{shop} ne aapko ₹{offer['cashback']} cashback bheja hai. "
-                f"₹{offer['min_bill']} ya zyada ka payment karein, {offer['valid_days']} din ke andar."
+        return (f"{shop} ने आपको ₹{offer['cashback']} कैशबैक भेजा। "
+                f"₹{offer['min_bill']} या ज़्यादा का पेमेंट करें · {offer['valid_days']} दिन"
                 if lang == "hi" else
                 f"{shop} sent you ₹{offer['cashback']} cashback. Pay ₹{offer['min_bill']} or more "
                 f"within {offer['valid_days']} days.")
     if ctype == "happy_hour":
-        return (f"{shop}: dopahar mein {offer['discount_pct']}% chhoot, "
-                f"₹{offer['max_discount']} tak. {offer['valid_days']} din ke liye."
+        return (f"{shop}: दोपहर में {offer['discount_pct']}% छूट, "
+                f"₹{offer['max_discount']} तक · {offer['valid_days']} दिन"
                 if lang == "hi" else
                 f"{shop}: {offer['discount_pct']}% off in the afternoon, up to ₹{offer['max_discount']}. "
                 f"Valid {offer['valid_days']} days.")
-    return (f"{shop}: ₹{offer['spend_target']} ka payment karein aur ₹{offer['cashback']} cashback paayein."
+    return (f"{shop}: ₹{offer['spend_target']} का पेमेंट करें, ₹{offer['cashback']} कैशबैक पाएँ"
             if lang == "hi" else
             f"{shop}: pay ₹{offer['spend_target']} or more and get ₹{offer['cashback']} back.")
 
@@ -75,7 +81,7 @@ def offer_text(ctype: str, offer: dict, shop: str, lang: str = "en") -> str:
 def approve(m: Merchant, opp, budget_cap: int | None = None) -> Campaign:
     """Split the audience, then queue the offer for the treatment group."""
     action = opp.action
-    rng = np.random.default_rng(abs(hash(opp.id)) % (2**32))
+    rng = np.random.default_rng(_seed(opp.id))
     audience = list(action["audience"])
     rng.shuffle(audience)
     n_hold = max(1, int(round(len(audience) * HOLDOUT_SHARE)))
@@ -98,7 +104,7 @@ def fast_forward(m: Merchant, c: Campaign, days: int = FORWARD_DAYS) -> dict:
     p = RESPONSE[c.type]
     # seeded by shop+play, not campaign id, so the same demo gives the same
     # numbers every time -- rehearsable, and nothing to re-roll on stage
-    rng = np.random.default_rng(abs(hash(c.merchant_id + c.play + "ff")) % (2**32))
+    rng = np.random.default_rng(_seed(c.merchant_id + c.play + "ff"))
     recent = m._tx[m._tx.day >= m._tx.day.max() - 29].amount.to_numpy()
     if len(recent) < 20:
         recent = m._tx.amount.to_numpy()
