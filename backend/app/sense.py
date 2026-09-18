@@ -18,6 +18,7 @@ from .world import CAT, DAYS, World
 
 COHORT_RADIUS_KM = 1.5     # "shops like yours, nearby"
 K_ANON = 10                # never report a customer-movement pattern below this
+MIN_COHORT_SHOPS = 5       # never benchmark against fewer shops -- one rival would be identifiable
 REGULAR_MIN_VISITS = 4     # visits in the 60-day window before the gap
 LAPSE_DAYS = 21            # no visit in this many days = lapsed
 NEW_SHOP_DAYS = 45         # a competitor counts as "new" if younger than this
@@ -90,6 +91,11 @@ class Merchant:
         return self.w.merchants.loc[self.mid]
 
     @property
+    def margin_pct(self) -> int:
+        from .world import CAT
+        return int(round(CAT[self.category]["gross_margin"] * 100))
+
+    @property
     def category(self) -> str:
         return str(self.row.category)
 
@@ -128,7 +134,12 @@ class Merchant:
         m = self.w.merchants
         same = m[(m.category == self.category) & (m.merchant_id != self.mid)]
         d = np.sqrt((same.x - self.row.x) ** 2 + (same.y - self.row.y) ** 2)
-        return same.merchant_id[d <= COHORT_RADIUS_KM].tolist()
+        near = same.merchant_id[d <= COHORT_RADIUS_KM].tolist()
+        if len(near) >= MIN_COHORT_SHOPS:
+            return near
+        # too few close by: widen to the whole area rather than expose 2-3 shops
+        wide = same.merchant_id.tolist()
+        return wide if len(wide) >= MIN_COHORT_SHOPS else []
 
     def cohort_repeat_rate(self) -> dict:
         t = DAYS - 1
@@ -138,6 +149,8 @@ class Merchant:
             c = sub.groupby("customer_id").size()
             if len(c) >= 20:
                 vals.append(float((c >= 2).mean()) * 100)
+        if len(vals) < MIN_COHORT_SHOPS:
+            vals = []
         return {"you": self.summary()["repeat_rate"],
                 "cohort": round(float(np.median(vals)), 1) if vals else 0.0,
                 "n_shops": len(vals)}
@@ -203,6 +216,8 @@ class Merchant:
             sub = self.w.tx[(self.w.tx.merchant_id == mid) & (self.w.tx.day >= t - 29)].amount
             if len(sub) >= 50:
                 med.append(float(sub.median()))
+        if len(med) < MIN_COHORT_SHOPS:
+            med = []
         return {"you": int(mine.median()) if len(mine) else 0,
                 "cohort": int(np.median(med)) if med else 0,
                 "cohort_p25": int(np.percentile(med, 25)) if med else 0,

@@ -36,7 +36,7 @@ MODEL = "claude-opus-5"
 GEMINI_MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.6-flash"]   # lite models write poor Hindi
 CACHE = Path(__file__).resolve().parents[1] / ".copy_cache.json"
 
-STATUS: dict[str, Any] = {"backend": "templates", "model": None, "latency_ms": None,
+STATUS: dict[str, Any] = {"backend": "templates", "model": None, "latency_ms": None, "cached": False,
                           "validator": None, "prompt": None, "raw": None, "error": None}
 
 
@@ -83,6 +83,10 @@ STYLE
 - Never mention a JSON field name (no "pct", "hour", "rate", "share").
 - "nearby_*" numbers are the average of similar shops in the area, NOT the new shop.
 - Every *_hi field must be in Devanagari script. Every *_en field in English.
+- est_extra_profit_month is PROFIT (after the shop's margin), est_extra_sales_month is SALES.
+  Never call sales "profit". Prefer the profit figure when talking about what the shop gains.
+- low_ticket with cashback 0 is a free suggestion: a combo at spend_target (e.g. tea + biscuit).
+  No cashback, no cost. Do not mention cashback for it.
 Rank the plays with the most valuable and most urgent first."""
 
 
@@ -155,6 +159,15 @@ def template_card(play: str, ev: dict) -> dict:
             action_hi=f"{g('discount_pct')}% छूट चलाएं", action_en=f"Run a {g('discount_pct')}% offer",
             soundbox_hi=f"दोपहर में आपकी दुकान खाली रहती है। {g('discount_pct')}% छूट से {g('regular_customers')} ग्राहकों को बुलाइए।",
             soundbox_en=f"Your afternoons are empty. A {g('discount_pct')} percent offer can bring in your {g('regular_customers')} regular customers.")
+    if play == "low_ticket" and not g("cashback"):          # cashback would lose money: a free tip
+        return dict(
+            headline_hi=f"आपका औसत बिल ₹{g('your_median_bill')} है",
+            headline_en=f"Your typical bill is ₹{g('your_median_bill')}",
+            why_hi=f"आसपास की {g('nearby_shops_compared')} दुकानों में ₹{g('nearby_median_bill')}। ₹{g('spend_target')} का combo (जैसे चाय + बिस्कुट) हर बिल में ₹{g('extra_per_bill')} जोड़ सकता है, बिना किसी खर्च के।",
+            why_en=f"{g('nearby_shops_compared')} shops nearby average ₹{g('nearby_median_bill')}. A ₹{g('spend_target')} combo (say tea + biscuit) adds ₹{g('extra_per_bill')} a bill, at no cost to you.",
+            action_hi=f"₹{g('spend_target')} का combo आज़माएँ", action_en=f"Try a ₹{g('spend_target')} combo",
+            soundbox_hi=f"आपका औसत बिल ₹{g('your_median_bill')} है। ₹{g('spend_target')} का combo बनाइए, जैसे चाय के साथ बिस्कुट।",
+            soundbox_en=f"Your typical bill is ₹{g('your_median_bill')}. Try a ₹{g('spend_target')} combo, like tea with a biscuit.")
     if play == "low_ticket":
         return dict(
             headline_hi=f"आपका औसत बिल ₹{g('your_median_bill')} है",
@@ -201,7 +214,8 @@ _MONEY = {"avg_bill", "monthly_value_at_risk", "cashback", "min_bill", "budget_c
           "est_extra_sales_month", "est_extra_sales", "daily_sales", "extra_stock_needed",
           "weekly_margin", "loan_amount", "processing_fee", "total_repayable", "daily_repayment",
           "weekly_sales", "weekly_potential", "max_discount", "your_median_bill",
-          "nearby_median_bill", "spend_target"}
+          "nearby_median_bill", "spend_target", "est_extra_profit_month", "extra_per_bill",
+          "amount_received", "interest"}
 
 
 def _clock(h: int) -> str:
@@ -352,7 +366,8 @@ def write_copy(merchant: dict, summary: dict, opps) -> CardSet:
     by_play = {c.play: c for c in result.cards}
     result.cards = [by_play[o.play] for o in opps if o.play in by_play]
     STATUS.update(backend=backend, model=model if backend != "templates" else None,
-                  latency_ms=latency if backend != "templates" else None,
+                  latency_ms=latency if backend != "templates" and not hit else None,
+                  cached=bool(hit),
                   validator=verdict, prompt=prompt,
                   raw=result.model_dump(), error=err)
     return result

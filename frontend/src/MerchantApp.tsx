@@ -49,6 +49,19 @@ const L = {
         speakReport: "रिपोर्ट साउंडबॉक्स पर सुनें",
         qrT: "पेमेंट लें", qrSub: "ग्राहक किसी भी UPI ऐप से स्कैन करें", simulate: "डेमो: ग्राहक ने पेमेंट किया",
         simNote: "साउंडबॉक्स तुरंत रकम बोलेगा", lastPaid: "अभी मिला",
+        profitMonth: "मुनाफ़ा / महीना", stLive: "ऑफर चालू · नतीजा 14 दिन में", stTip: "आज़मा रहे हैं",
+        stDone: (r: number, a: number) => `${r} लौटे · ${a} अभी भी नहीं आए`, seeStatus: "स्थिति देखें", seeResult: "नतीजा देखें",
+        emptyT: "आज कोई नया मौका नहीं",
+        emptyS: (run: boolean) => run ? "चल रहे ऑफर का नतीजा 14 दिन में साउंडबॉक्स पर आएगा।" : "दुकान साथी हर रात आपकी बिक्री देखता है। कुछ ज़रूरी दिखा तो साउंडबॉक्स पर बताएगा।",
+        estProfit: "अनुमानित मुनाफ़ा / महीना",
+        estNote: (v: string, m: number, l: number) => `बिक्री ${v} × ${m}% मार्जिन · मान्यता: कंट्रोल ग्रुप से ${l}% ज़्यादा ग्राहक लौटेंगे`,
+        tipNote: (v: string, m: number, k: number) => `बिक्री ${v} × ${m}% मार्जिन · मान्यता: ${k}% ग्राहक combo लेंगे`,
+        tipOk: "ठीक है, आज़माऊँगा", tipDone: "बढ़िया। अगले हफ्ते साउंडबॉक्स बताएगा कि बिल बढ़ा या नहीं।",
+        tipWhy: "कोई खर्च नहीं। यहाँ कैशबैक देना घाटे का सौदा होता।", noCost: "खर्च",
+        profitT: "ऑफर से अतिरिक्त मुनाफ़ा", salesRow: "अतिरिक्त बिक्री", marginRow: (m: number) => `उस पर मुनाफ़ा (${m}% मार्जिन)`,
+        cashRow: "कैशबैक खर्च", netRow: "शुद्ध फ़ायदा, 14 दिन में", tentative: "अभी पक्का नहीं",
+        perProfit: (v: string) => `हर ₹1 पर ${v} मुनाफ़ा`, expAct: (e: string, a: string) => `अनुमान था ${e} बिक्री · असल में ${a}`,
+        example: "उदाहरण", audienceOf: (a: number, b: number) => `${a} + ${b} कंट्रोल`,
         noLoanT: "अभी लोन की ज़रूरत नहीं", noLoanS: "आपकी बिक्री और स्टॉक का हिसाब ठीक है। त्योहार या बड़े ऑर्डर से पहले पैसे कम पड़ते दिखे तो दुकान साथी साउंडबॉक्स पर बताएगा।",
         profileT: "प्रोफ़ाइल", shopId: "मर्चेंट ID", type: "दुकान का प्रकार", language: "भाषा", soundboxRow: "साउंडबॉक्स सेटिंग",
         dataNote: "यह डेमो दुकान है। आँकड़े सिम्युलेटेड हैं, पर ढाँचा असली Paytm पेमेंट रिकॉर्ड जैसा है।",
@@ -93,6 +106,19 @@ const L = {
         speakReport: "Play report on the Soundbox",
         qrT: "Receive payment", qrSub: "Customers scan with any UPI app", simulate: "Demo: a customer pays",
         simNote: "The Soundbox announces the amount instantly", lastPaid: "Just received",
+        profitMonth: "profit / month", stLive: "Offer running · result in 14 days", stTip: "Trying it",
+        stDone: (r: number, a: number) => `${r} came back · ${a} still away`, seeStatus: "See status", seeResult: "See result",
+        emptyT: "No new opportunities today",
+        emptyS: (run: boolean) => run ? "The running offer's result reaches the Soundbox in 14 days." : "Dukaan Saathi checks your sales every night and will speak up on the Soundbox when something matters.",
+        estProfit: "Est. profit / month",
+        estNote: (v: string, m: number, l: number) => `sales ${v} × ${m}% margin · assumes ${l}% more come back than in the control group`,
+        tipNote: (v: string, m: number, k: number) => `sales ${v} × ${m}% margin · assumes ${k}% of customers take the combo`,
+        tipOk: "OK, I'll try it", tipDone: "Great. Next week the Soundbox will tell you whether bills went up.",
+        tipWhy: "No cost. A cashback here would lose money.", noCost: "Cost",
+        profitT: "Extra profit from the offer", salesRow: "Extra sales", marginRow: (m: number) => `Profit on that (${m}% margin)`,
+        cashRow: "Cashback spent", netRow: "Net gain, 14 days", tentative: "not yet certain",
+        perProfit: (v: string) => `${v} profit per ₹1`, expAct: (e: string, a: string) => `Forecast ${e} of sales · actual ${a}`,
+        example: "Example", audienceOf: (a: number, b: number) => `${a} + ${b} control`,
         noLoanT: "No loan needed right now", noLoanS: "Your sales cover your stock. If a festival or big order looks likely to leave you short, Dukaan Saathi will say so on the Soundbox.",
         profileT: "Profile", shopId: "Merchant ID", type: "Shop type", language: "Language", soundboxRow: "Soundbox settings",
         dataNote: "This is a demo shop. The figures are simulated but shaped exactly like Paytm payment records.",
@@ -131,6 +157,8 @@ function offerLine(play: string, e: any, lang: string) {
     : `${inr(e.cashback)} cashback on bills of ${inr(e.min_bill)} or more · ${e.valid_days} days`;
   if (play === "dead_hours") return hi ? `${h12(e.quiet_from_hour)}–${h12(e.quiet_to_hour)} बजे ${e.discount_pct}% छूट, ${inr(e.max_discount)} तक · ${e.valid_days} दिन`
     : `${e.discount_pct}% off, ${h12(e.quiet_from_hour)}–${h12(e.quiet_to_hour)} PM, up to ${inr(e.max_discount)} · ${e.valid_days} days`;
+  if (!e.cashback) return hi ? `${inr(e.spend_target)} का combo, जैसे चाय + बिस्कुट · कोई कैशबैक नहीं`
+    : `A ${inr(e.spend_target)} combo, like tea + biscuit · no cashback`;
   return hi ? `${inr(e.spend_target)} के बिल पर ${inr(e.cashback)} वापस · ${e.valid_days} दिन`
     : `${inr(e.cashback)} back on bills of ${inr(e.spend_target)} · ${e.valid_days} days`;
 }
@@ -159,7 +187,11 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
 
   useEffect(() => {
     setScreen("home"); setOpp(null); setCamp(null); setResult(null); setApplied(false); setConsent(false);
-    api.home(mid, lang).then((d) => { setHome(d); onData?.(d); });
+    api.home(mid, lang).then((d) => {
+      setHome(d); onData?.(d);
+      const last = d.campaigns[d.campaigns.length - 1];   // this shop's own offers only
+      if (last) api.campaign(last.id).then((c) => onNotify?.(c.notifications)); else onNotify?.([]);
+    });
     api.recent(mid).then(setRecent);
   }, [mid, lang]);
 
@@ -340,11 +372,20 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
               <Pill bg={C.skyL} fg={C.navy}>{home.opportunities.length}</Pill>
             </div>
 
-            {home.opportunities.map((o: any) => {
+            {!home.opportunities.some((o: any) => !o.state) && (
+              <Card className="flex gap-3 px-3.5 py-3.5">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#ECFDF3]"><Icon name="check" size={18} color="#12B76A" stroke={2.6} /></div>
+                <div><div className="deva text-[14.5px] font-bold">{t.emptyT}</div>
+                  <div className="deva mt-0.5 text-[12.5px] leading-[17px] text-[#667085]">{t.emptyS(home.opportunities.some((o: any) => o.state?.status === "live"))}</div></div>
+              </Card>
+            )}
+
+            {[...home.opportunities].sort((a: any, b: any) => (a.state ? 1 : 0) - (b.state ? 1 : 0)).map((o: any) => {
               const [ic, bg, fg] = ICON_FOR[o.play] || ICON_FOR.winback;
+              const st = o.state;
               return (
-                <button key={o.id} onClick={() => openOpp(o.play)}
-                  className="block w-full rounded-2xl border border-[#E8EDF3] bg-white px-3.5 pb-3 pt-3.5 text-left transition hover:border-[#9ADCF3]">
+                <button key={o.id} onClick={() => (st?.id ? openCampaign({ id: st.id }) : openOpp(o.play))}
+                  className={`block w-full rounded-2xl border border-[#E8EDF3] bg-white px-3.5 pb-3 pt-3.5 text-left transition hover:border-[#9ADCF3] ${st ? "opacity-80" : ""}`}>
                   <div className="flex gap-2.5">
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px]" style={{ background: bg }}>
                       <Icon name={ic} size={19} color={fg} />
@@ -355,21 +396,26 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
                     </div>
                   </div>
                   <div className="my-2.5 h-px bg-[#EEF2F6]" />
-                  <div className="flex items-center justify-between">
-                    {o.kind === "loan" ? <Pill bg="#FFFAEB" fg="#B54708">{t.partnerLoan}</Pill>
-                      : <Pill bg="#ECFDF3" fg="#067647">+{inr(o.evidence.est_extra_sales_month || o.evidence.est_extra_sales || o.score)} {t.perMonth}</Pill>}
-                    <span className="deva text-[13.5px] font-extrabold text-[#00A3DB]">{o.action_label} ›</span>
+                  <div className="flex items-center justify-between gap-2">
+                    {st ? (
+                      <>
+                        <Pill bg={st.status === "done" ? "#ECFDF3" : C.skyL} fg={st.status === "done" ? "#067647" : C.navy}>
+                          {st.status === "done" ? t.stDone(st.returned, st.still_away) : st.status === "tip" ? t.stTip : t.stLive}
+                        </Pill>
+                        {st.id && <span className="deva shrink-0 text-[13px] font-extrabold text-[#00A3DB]">{st.status === "done" ? t.seeResult : t.seeStatus} ›</span>}
+                      </>
+                    ) : (
+                      <>
+                        {o.kind === "loan" ? <Pill bg="#FFFAEB" fg="#B54708">APR {o.evidence.apr_pct}% · {t.partnerLoan}</Pill>
+                          : <Pill bg="#ECFDF3" fg="#067647">+{inr(o.evidence.est_extra_profit_month)} {t.profitMonth}</Pill>}
+                        <span className="deva shrink-0 text-[13.5px] font-extrabold text-[#00A3DB]">{o.action_label} ›</span>
+                      </>
+                    )}
                   </div>
                 </button>
               );
             })}
 
-            {home.campaigns.length > 0 && (
-              <>
-                <div className="deva px-0.5 pt-1 text-[14px] font-extrabold">{t.running}</div>
-                {home.campaigns.map((c: any) => <CampRow key={c.id} c={c} />)}
-              </>
-            )}
           </div>
 
           <Nav />
@@ -441,18 +487,37 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
                 <div className="deva text-[11px] font-bold text-[#0086B3]">{t.offer}</div>
                 <div className="deva mt-1 text-[14px] font-bold">{offerLine(opp.play, opp.evidence, lang)}</div>
                 <div className="mt-2.5 flex justify-between">
-                  {[[t.people, opp.audience_size, C.ink], [t.maxSpend, inr(opp.action.budget_cap), C.ink],
-                    [t.estimate, `+${inr(opp.evidence.est_extra_sales_month || opp.evidence.est_extra_sales)}`, "#067647"]].map(([k, v, c]: any) => (
-                    <div key={k}><div className="deva text-[10.5px] font-medium text-[#667085]">{k}</div><div className="tnum text-[14.5px] font-extrabold" style={{ color: c }}>{v}</div></div>
+                  {(opp.kind === "tip"
+                    ? [[t.people, opp.evidence.regular_customers, C.ink], [t.noCost, "₹0", C.ink],
+                       [t.estProfit, `+${inr(opp.evidence.est_extra_profit_month)}`, "#067647"]]
+                    : [[t.people, t.audienceOf(opp.evidence.sent_to, opp.evidence.held_back), C.ink], [t.maxSpend, inr(opp.action.budget_cap), C.ink],
+                       [t.estProfit, `+${inr(opp.evidence.est_extra_profit_month)}`, "#067647"]]).map(([k, v, c]: any) => (
+                    <div key={k}><div className="deva text-[10.5px] font-medium text-[#667085]">{k}</div><div className="deva tnum text-[14.5px] font-extrabold" style={{ color: c }}>{v}</div></div>
                   ))}
+                </div>
+                <div className="deva tnum mt-2 text-[10.5px] leading-[14px] text-[#667085]">
+                  {opp.kind === "tip"
+                    ? t.tipNote(inr(opp.evidence.est_extra_sales_month), opp.evidence.margin_pct, opp.evidence.assumed_takeup_pct)
+                    : t.estNote(inr(opp.evidence.est_extra_sales_month), opp.evidence.margin_pct, opp.evidence.assumed_lift_pct)}
                 </div>
               </div>
             </div>
             <Footer>
-              <div className="flex gap-2.5">
-                <button onClick={() => setScreen("home")} className="deva flex-1 rounded-xl border border-[#D0D5DD] bg-white py-3.5 text-[15px] font-bold text-[#344054]">{t.notNow}</button>
-                <Primary className="flex-[2]" onClick={() => setConfirm(true)}>{t.approve}</Primary>
-              </div>
+              {opp.state?.status === "tip" ? (
+                <div className="deva rounded-xl border border-[#ABEFC6] bg-[#ECFDF3] p-3 text-[12.5px] leading-[17px] text-[#067647]">{t.tipDone}</div>
+              ) : opp.state?.id ? (
+                <Primary onClick={() => openCampaign({ id: opp.state.id })}>{opp.state.status === "done" ? t.seeResult : t.seeStatus}</Primary>
+              ) : opp.kind === "tip" ? (
+                <>
+                  <div className="deva mb-2 text-center text-[11.5px] font-medium text-[#667085]">{t.tipWhy}</div>
+                  <Primary onClick={async () => { await api.approve(mid, opp.play); setOpp({ ...opp, state: { status: "tip" } }); api.home(mid, lang).then(setHome); }}>{t.tipOk}</Primary>
+                </>
+              ) : (
+                <div className="flex gap-2.5">
+                  <button onClick={() => setScreen("home")} className="deva flex-1 rounded-xl border border-[#D0D5DD] bg-white py-3.5 text-[15px] font-bold text-[#344054]">{t.notNow}</button>
+                  <Primary className="flex-[2]" onClick={() => setConfirm(true)}>{t.approve}</Primary>
+                </div>
+              )}
             </Footer>
           </>
         );
@@ -510,13 +575,24 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
             <Bar title={t.results} />
             <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4 no-scrollbar">
               <div className="rounded-2xl p-4 text-white" style={{ background: "linear-gradient(135deg,#002E6E,#0067B8)" }}>
-                <div className="deva text-[13px] font-medium text-white/75">{t.extra}</div>
-                <div className="tnum text-[34px] font-extrabold leading-tight">{inr(r.incremental_sales)}</div>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="deva tnum text-[13px] text-white/75">{t.spent} {inr(r.spent)}</span>
-                  {r.return_per_rupee && <span className="deva tnum rounded-md bg-white/15 px-2 py-0.5 text-[12px] font-bold text-[#7FF0C8]">{t.perRupee(inr(r.return_per_rupee))}</span>}
-                </div>
+                <div className="deva text-[13px] font-medium text-white/75">{t.profitT}</div>
+                <div className="tnum text-[32px] font-extrabold leading-tight">{inr(r.extra_profit)}</div>
+                {r.profit_per_rupee != null && (
+                  <div className="deva tnum mt-1 text-[12px] font-semibold text-white/80">
+                    {t.perProfit(`₹${r.profit_per_rupee}`)}{r.small_control && <span className="ml-1.5 rounded bg-white/15 px-1.5 py-px text-[10.5px] font-bold text-[#FEDF89]">{t.tentative}</span>}
+                  </div>
+                )}
               </div>
+              <Card className="divide-y divide-[#EEF2F6] px-3.5">
+                {[[t.salesRow, inr(r.incremental_sales), C.ink], [t.marginRow(r.margin_pct), inr(r.extra_profit), C.ink],
+                  [t.cashRow, `− ${inr(r.spent)}`, "#B42318"], [t.netRow, `${r.net_gain >= 0 ? "+" : "−"} ${inr(Math.abs(r.net_gain))}`, r.net_gain >= 0 ? "#067647" : "#B42318"]].map(([k, v, c]: any, i: number) => (
+                  <div key={k} className={`flex items-center justify-between py-2 ${i === 3 ? "font-extrabold" : ""}`}>
+                    <span className="deva text-[12.5px] font-semibold text-[#475467]">{k}</span>
+                    <span className="tnum text-[14px] font-bold" style={{ color: c }}>{v}</span>
+                  </div>
+                ))}
+                <div className="deva tnum py-2 text-[11px] font-medium text-[#667085]">{t.expAct(inr(r.expected_sales), inr(r.incremental_sales))}</div>
+              </Card>
               <Card className="space-y-3 p-3.5">
                 <div className="deva text-[13.5px] font-bold text-[#344054]">{t.returned}</div>
                 {[[t.got, r.treatment, C.navy], [t.ctrl, r.holdout, "#98A2B3"]].map(([label, g, color]: any) => (
@@ -683,7 +759,7 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
             {home.campaigns.length ? home.campaigns.map((c: any) => <CampRow key={c.id} c={c} />)
               : <Card className="deva px-3.5 py-3 text-[12.5px] text-[#667085]">{t.noRunning}</Card>}
             <div className="deva px-0.5 pt-1 text-[14px] font-extrabold">{t.suggested}</div>
-            {home.opportunities.filter((o: any) => o.kind !== "loan" && !home.campaigns.some((c: any) => c.play === o.play)).map((o: any) => {
+            {home.opportunities.filter((o: any) => o.kind !== "loan" && !o.state).map((o: any) => {
               const [ic, bg, fg] = ICON_FOR[o.play] || ICON_FOR.winback;
               return (
                 <button key={o.id} onClick={() => openOpp(o.play)} className="flex w-full items-center gap-2.5 rounded-2xl border border-[#E8EDF3] bg-white px-3.5 py-3 text-left hover:border-[#9ADCF3]">
@@ -813,8 +889,8 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#D0D5DD]" />
             <div className="deva mb-3.5 text-[18px] font-extrabold">{t.before}</div>
             {(() => {
-              const n = opp.audience_size, hold = Math.max(1, Math.round(n * 0.2));
-              return [["users", t.sendTo(n - hold), t.holdout(hold)], ["lock", t.capT(inr(opp.action.budget_cap)), t.capS], ["soundbox", t.sbT, t.sbS]];
+              const send = opp.evidence.sent_to, hold = opp.evidence.held_back;
+              return [["users", t.sendTo(send), t.holdout(hold)], ["lock", t.capT(inr(opp.action.budget_cap)), t.capS], ["soundbox", t.sbT, t.sbS]];
             })().map(([ic, head, sub]: any) => (
               <div key={ic} className="mb-3.5 flex gap-3">
                 <div className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] bg-[#E5F7FE]"><Icon name={ic} size={19} color={C.navy} /></div>

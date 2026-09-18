@@ -25,8 +25,22 @@ export const api = {
 export const inr = (n: number) =>
   "₹" + Math.round(n).toLocaleString("en-IN");
 
-/** Speak through the browser. Voices load async, so we retry once. */
+let current: HTMLAudioElement | null = null;
+
+/** Speak a line. Prefer the pre-generated natural voice (Gemini TTS, served by
+ *  /api/tts); if this line was never generated, use the browser's own voice. */
 export function speak(text: string, lang: "hi" | "en", onEnd?: () => void) {
+  stopSpeaking();
+  let done = false;
+  const finish = () => { if (!done) { done = true; onEnd?.(); } };
+  const a = new Audio(`/api/tts?text=${encodeURIComponent(text)}`);
+  current = a;
+  a.onended = finish;
+  a.onerror = () => { if (current === a) { current = null; browserSpeak(text, lang, finish); } };
+  a.play().catch(() => { if (current === a) { current = null; browserSpeak(text, lang, finish); } });
+}
+
+function browserSpeak(text: string, lang: "hi" | "en", onEnd?: () => void) {
   const synth = window.speechSynthesis;
   if (!synth) { onEnd?.(); return; }
   synth.cancel();
@@ -44,4 +58,7 @@ export function speak(text: string, lang: "hi" | "en", onEnd?: () => void) {
   if (synth.getVoices().length === 0) setTimeout(go, 250); else go();
 }
 
-export const stopSpeaking = () => window.speechSynthesis?.cancel();
+export const stopSpeaking = () => {
+  if (current) { current.onerror = null; current.pause(); current = null; }
+  window.speechSynthesis?.cancel();
+};

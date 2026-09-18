@@ -15,11 +15,25 @@ import numpy as np
 from .sense import K_ANON, Merchant, inr
 from .world import DAYS
 
-# Stated assumptions -- shown in the UI so nothing is a black box.
-ASSUMED_WINBACK_UPLIFT = 0.30     # share of lapsed regulars an offer brings back
-ASSUMED_HAPPY_HOUR_UPLIFT = 0.07  # share of regulars who take an off-peak offer
-ASSUMED_THRESHOLD_TAKEUP = 0.35   # share of visits that reach a spend threshold
+# Stated assumptions -- shown in the UI so nothing is a black box. Lifts are
+# INCREMENTAL (offer group minus control group), the same way results are measured,
+# so a forecast and its result can be compared like for like. Measured lifts from
+# past campaigns replace these once a shop has run any.
+ASSUMED_WINBACK_LIFT = 0.20       # extra share of lapsed regulars who return vs control
+ASSUMED_HAPPY_HOUR_LIFT = 0.07    # extra share of regulars who come in the quiet hours
+ASSUMED_HAPPY_HOUR_VISITS = 2     # such visits per month
+ASSUMED_COMBO_TAKEUP = 0.15       # share of regular visits that take a suggested combo
 CASH_GAP_MARGIN_WEEKS = 2.0       # stock cost above this many weeks of margin = gap
+HOLDOUT_SHARE = 0.20              # held back as the control group
+# How far a bill can plausibly be nudged, by business type. A tea stall cannot
+# double its ticket; a kirana basket can grow a little.
+MAX_TICKET_UPLIFT = {"kirana": 0.20, "chai": 0.30, "salon": 0.20, "pharmacy": 0.15}
+
+
+def split_sizes(n: int) -> tuple[int, int]:
+    """(sent_to, held_back) -- the one place the holdout size is decided."""
+    held = max(1, int(round(n * HOLDOUT_SHARE)))
+    return n - held, held
 
 
 @dataclass
@@ -70,17 +84,24 @@ def _winback(m: Merchant):
     # offer sized to the shop: ₹20 on ₹150 for a kirana, ₹5 on ₹30 for a chai stall
     min_bill = min(150, int(math.ceil(avg_bill * 1.25 / 10.0) * 10))
     cashback, valid_days = (20 if avg_bill >= 100 else 5), 7
-    budget_cap = n * cashback
-    # what they stand to recover: a share of the monthly spend now walking away
-    est_return = int(ASSUMED_WINBACK_UPLIFT * monthly_at_risk)
+    sent_to, held_back = split_sizes(n)
+    budget_cap = sent_to * cashback                 # only the people who get the offer can use it
+    margin = m.margin_pct
+    # extra customers beyond what the control group would do anyway, times what one spends a month
+    per_customer_month = monthly_at_risk / n
+    est_sales = int(round(ASSUMED_WINBACK_LIFT * sent_to * per_customer_month))
+    est_profit = int(round(est_sales * margin / 100))
 
     ev = {"lapsed_regulars": n, "weeks_since_last_visit": weeks,
           "visits_per_month_before": visits_before, "avg_bill": avg_bill,
           "monthly_value_at_risk": monthly_at_risk,
-          "your_repeat_rate_pct": repeat["you"], "nearby_repeat_rate_pct": repeat["cohort"],
-          "nearby_shops_compared": repeat["n_shops"],
+          "your_repeat_rate_pct": repeat["you"],
           "cashback": cashback, "min_bill": min_bill, "valid_days": valid_days,
-          "budget_cap": budget_cap, "est_extra_sales_month": est_return}
+          "sent_to": sent_to, "held_back": held_back, "budget_cap": budget_cap,
+          "assumed_lift_pct": int(ASSUMED_WINBACK_LIFT * 100), "margin_pct": margin,
+          "est_extra_sales_month": est_sales, "est_extra_profit_month": est_profit}
+    if repeat["n_shops"]:
+        ev |= {"nearby_repeat_rate_pct": repeat["cohort"], "nearby_shops_compared": repeat["n_shops"]}
     if drift and drift["is_new"]:
         ev |= {"moved_to_new_shop": drift["count"], "new_shop_distance_m": drift["distance_m"],
                "new_shop_opened_days_ago": drift["opened_days_ago"]}
@@ -96,7 +117,7 @@ def _winback(m: Merchant):
                        "these_customers": int(sub[sub.customer_id.isin(lap_ids)].customer_id.nunique())})
 
     return Opportunity(
-        play="winback", merchant_id=m.mid, score=est_return - budget_cap, evidence=ev,
+        play="winback", merchant_id=m.mid, score=est_profit - budget_cap, evidence=ev,
         charts={"weekly_customers": weekly,
                 "repeat_rate": [{"who": "You", "value": repeat["you"]},
                                 {"who": "Nearby shops", "value": repeat["cohort"]}]},
@@ -130,9 +151,15 @@ def _dead_hours(m: Merchant):
     weekly_gmv = m.forecast()["weekly_gmv"]
     potential = int(weekly_gmv * total_gap / 100.0)
     audience = len(regs)
+    sent_to, held_back = split_sizes(audience)
     discount_pct, max_discount, valid_days = 20, 100, 14
-    budget_cap = int(audience * ASSUMED_HAPPY_HOUR_UPLIFT * max_discount)
-    est_return = int(ASSUMED_HAPPY_HOUR_UPLIFT * audience * m.ticket_stats()["you"])
+    bill = m.ticket_stats()["you"]
+    margin = m.margin_pct
+    visits = sent_to * ASSUMED_HAPPY_HOUR_LIFT * ASSUMED_HAPPY_HOUR_VISITS
+    per_visit_discount = min(bill * discount_pct / 100, max_discount)
+    budget_cap = int(math.ceil(visits * per_visit_discount * 1.5 / 10.0) * 10)   # 50% headroom, then hard stop
+    est_sales = int(round(visits * bill))
+    est_profit = int(round(est_sales * margin / 100))
 
     ev = {"quiet_from_hour": lo, "quiet_to_hour": hi,
           "your_share_pct": round(float(you[lo:hi].sum()), 1),
@@ -141,10 +168,12 @@ def _dead_hours(m: Merchant):
           "weekly_sales": weekly_gmv, "weekly_potential": potential,
           "regular_customers": audience, "discount_pct": discount_pct,
           "max_discount": max_discount, "valid_days": valid_days,
-          "budget_cap": budget_cap, "est_extra_sales": est_return}
+          "sent_to": sent_to, "held_back": held_back, "budget_cap": budget_cap,
+          "assumed_lift_pct": int(ASSUMED_HAPPY_HOUR_LIFT * 100), "margin_pct": margin,
+          "est_extra_sales_month": est_sales, "est_extra_profit_month": est_profit}
 
     return Opportunity(
-        play="dead_hours", merchant_id=m.mid, score=est_return - budget_cap, evidence=ev,
+        play="dead_hours", merchant_id=m.mid, score=est_profit - budget_cap, evidence=ev,
         charts={"hourly": [{"hour": fmt(x) if x in (lo, hi - 1) else str(x),
                             "you": float(you[x]), "nearby": float(cohort[x])}
                            for x in range(8, 22)],
@@ -172,24 +201,51 @@ def _low_ticket(m: Merchant):
 
     regs = m.regulars()
     audience = len(regs)
-    spend_target = int(round(t["cohort"] / 5.0) * 5)
-    cashback, valid_days = 5, 14
-    budget_cap = int(audience * ASSUMED_THRESHOLD_TAKEUP * cashback * 2)
-    est_return = int(ASSUMED_THRESHOLD_TAKEUP * audience * 2 * (spend_target - t["you"]))
+    margin = m.margin_pct
+    cap = MAX_TICKET_UPLIFT.get(m.category, 0.15)
+    # nudge the bill only as far as this kind of shop plausibly can, never past the area norm
+    target = int(min(t["cohort"], t["you"] * (1 + cap)) // 5 * 5)
+    extra = target - t["you"]
+    plausible = extra >= 5
+    check["plausibility"] = (f"target {inr(target)} = +{int(cap * 100)}% max for {m.category}"
+                             if plausible else f"+{int(cap * 100)}% of {inr(t['you'])} is under ₹5")
+    if not plausible:
+        check["fired"] = False
+        return None, check
+    # a cashback has to cost less than the margin it earns, or the shop pays to sell
+    cashback = int(extra * margin / 100 * 0.5)
+    visits_month = audience * 4                      # regulars come about weekly
+    sent_to, held_back = split_sizes(audience)
+    if cashback >= 2:
+        kind, uses = "campaign", sent_to * 4 * ASSUMED_COMBO_TAKEUP
+        budget_cap = int(math.ceil(uses * cashback / 10.0) * 10)
+        est_sales = int(round(uses * extra))
+    else:                                            # cashback would not pay: suggest a combo instead
+        kind, cashback, budget_cap = "tip", 0, 0
+        est_sales = int(round(visits_month * ASSUMED_COMBO_TAKEUP * extra))
+    est_profit = int(round(est_sales * margin / 100))
+    check["plausibility"] += " · " + ("cashback pays for itself" if kind == "campaign"
+                                      else "cashback would lose money → free combo tip")
 
     ev = {"your_median_bill": t["you"], "nearby_median_bill": t["cohort"],
           "nearby_shops_compared": t["n_shops"], "regular_customers": audience,
-          "spend_target": spend_target, "cashback": cashback, "valid_days": valid_days,
-          "budget_cap": budget_cap, "est_extra_sales": est_return}
+          "spend_target": target, "extra_per_bill": extra, "max_uplift_pct": int(cap * 100),
+          "cashback": cashback, "valid_days": 14, "budget_cap": budget_cap, "margin_pct": margin,
+          "assumed_takeup_pct": int(ASSUMED_COMBO_TAKEUP * 100),
+          "est_extra_sales_month": est_sales, "est_extra_profit_month": est_profit}
+    if kind == "campaign":
+        ev |= {"sent_to": sent_to, "held_back": held_back}
+        action = {"kind": "campaign", "type": "threshold", "audience": regs.customer_id.tolist(),
+                  "offer": {"spend_target": target, "cashback": cashback, "valid_days": 14},
+                  "budget_cap": budget_cap}
+    else:
+        action = {"kind": "tip", "combo_price": target}
 
     return Opportunity(
-        play="low_ticket", merchant_id=m.mid, score=est_return - budget_cap, evidence=ev,
+        play="low_ticket", merchant_id=m.mid, score=est_profit - budget_cap, evidence=ev,
         charts={"ticket": [{"who": "You", "value": t["you"]},
                            {"who": "Nearby shops", "value": t["cohort"]}]},
-        action={"kind": "campaign", "type": "threshold", "audience": regs.customer_id.tolist(),
-                "offer": {"spend_target": spend_target, "cashback": cashback, "valid_days": valid_days},
-                "budget_cap": budget_cap},
-        detector=check,
+        action=action, detector=check,
         provenance={"your_median_bill": m.prov.add("Your last 30 days of payments",
                                                    m._tx[m._tx.day >= DAYS - 30])},
     ), check

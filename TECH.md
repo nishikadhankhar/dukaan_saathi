@@ -42,7 +42,7 @@ with pandas in about 1–2 seconds at startup. Production would read from Paytm'
 | **Tailwind CSS** | 4 | Styling via utility classes, colours matched to Paytm for Business | everywhere, `index.css` |
 | **Recharts** | 2.15 | Charts: weekly visits (evidence), 30-day sales (reports) | `MerchantApp.tsx` |
 | **Web Speech API** | browser built-in | **Text-to-speech (TTS)** for the Soundbox voice | `api.ts` → `speak()` |
-| Google Fonts | — | Plus Jakarta Sans (English), **Mukta** (Devanagari/Hindi), JetBrains Mono (numbers) | `index.html` |
+| @fontsource | 5 | Plus Jakarta Sans (English), **Mukta** (Devanagari/Hindi), JetBrains Mono. **Bundled**, with no Google CDN, so venue Wi-Fi can't break the Hindi | `main.tsx` |
 | Icons | — | Inline SVGs drawn from Lucide icon shapes, so no icon library to download | `icons.tsx` |
 
 ### Design and tooling
@@ -52,18 +52,20 @@ with pandas in about 1–2 seconds at startup. Production would read from Paytm'
 
 ## 3. TTS: how the Soundbox talks
 
-- It's **not a library**. It's the browser's built-in **Web Speech API**, `window.speechSynthesis`.
-- `api.ts → speak(text, lang)` creates a `SpeechSynthesisUtterance` and sets `lang` to `hi-IN` (Hindi) or
-  `en-IN` (Indian English). It picks a matching installed voice (on a Mac that's **Lekha** for Hindi),
-  at rate 0.96.
-- Voices come from the operating system, so it **works offline**, costs nothing, and adds no delay.
+- **Main voice: Gemini TTS** (`gemini-3.1-flash-tts-preview`, voice "Kore"), in `backend/app/tts.py`.
+  Generating a line takes about 9 s, too slow to do live, so `python3 -m app.warm` records every line the demo speaks
+  and saves them as small AAC files (about 100 KB each, via macOS `afconvert`) in `backend/tts_cache/`. `/api/tts?text=…`
+  only serves files that already exist.
+- **Fallback: the browser's built-in Web Speech API**, `window.speechSynthesis`, for any line that
+  wasn't pre-recorded (for example a random QR payment amount).
+- `api.ts → speak(text, lang)` first plays `/api/tts?text=…` in an `<audio>` element. If that returns 404
+  (not recorded), it falls back to a `SpeechSynthesisUtterance` with `lang` set to `hi-IN` or `en-IN` (on a
+  Mac the Hindi voice is **Lekha**). Both work offline.
 - **How the phone makes the counter device speak:** any "play" button calls `onSpeak(text)` →
   `App.tsx say()` stores `{text, time}` → the `Soundbox` component notices the change and speaks
   while its light pulses. One code path for everything, so the in-app Soundbox screen visibly drives the device.
-- **In production:** a real Soundbox would play audio pushed from Paytm's servers, using a cloud TTS
-  (for example Google Cloud TTS or Bhashini) to generate the audio once per message.
-- **Why not cloud TTS now?** It needs no key and has zero latency on stage. The weakness: voice quality
-  depends on the laptop, which is why the checklist says to use Chrome and add Lekha.
+- **In production:** the same idea. The Soundbox gets one short message a day, so Paytm's servers generate
+  its audio once (Gemini TTS, Google Cloud TTS or Bhashini) and push the file to the device.
 
 ## 4. Backend files: what each one does
 
@@ -84,10 +86,12 @@ with pandas in about 1–2 seconds at startup. Production would read from Paytm'
 | **Win-back** (Sharma) | ≥ 10 regulars (≥ 4 visits in the earlier window) have **no visit in 21 days** | Cashback sized to the bill: ₹20 on ₹150 for a kirana, ₹5 on ₹30 for a chai stall; 7 days |
 | ↳ Drift | ≥ 10 of those now pay **≥ 2 times** at one other same-category shop in those 21 days | adds "17 moved to a new shop 197 m away" |
 | **Dead hours** (Glow) | Between 11 AM and 7 PM, ≥ 2 hours where your share of sales is under half of nearby shops' (median), with the gaps adding up to ≥ 6 points | 20% off in those hours, capped |
-| **Low ticket** (Raju) | Your median bill is < 70% of nearby shops' median | ₹5 back when the bill reaches the nearby median |
+| **Low ticket** (Raju) | Your median bill is < 70% of nearby shops' median | Target capped by business type (kirana +20%, tea +30%, salon +20%): Raju ₹20 → ₹25. Cashback only if it's less than half the extra margin; otherwise a **free combo tip** (Raju's case, cost ₹0) |
 | **Cash gap** (Sharma) | Festival 0–45 days away and extra stock needed > 2 weeks of margin | Partner loan, **rounded up** to ₹5,000 |
 
-"Nearby" = the same shop category within 1.5 km. Ranked by expected ₹ value.
+"Nearby" = the same shop category within 1.5 km, and **at least 5 shops**, otherwise the whole area, otherwise no
+benchmark. Ranked by expected monthly **profit** minus the cashback cap. Once acted on, a card shows its status
+("19 came back · 53 still away") and the API refuses to send it twice.
 
 **The 18 vs 17 question:** 18 customers were planted as moving to the rival. The detector reports 17 because
 one of them paid at the rival only once in the window, and the rule needs 2 visits to count as "moved".
@@ -168,11 +172,17 @@ A randomised controlled trial. The audience is shuffled, 20% held back and 80% g
 return rate (32.2% − 13.3%). Extra sales = (sales per customer, offer group − sales per customer, control)
 × 59 = (₹162.6 − ₹68.1) × 59 = **₹5,576**.
 
-**"₹7 per rupee": is that profit?** *(the sharpest question you might get)*
-No, it's **extra sales** per rupee of cashback. At a kirana's ~18% margin, ₹5,576 of sales is about
-₹1,000 of profit against ₹840 of cashback: positive, but only slightly. Two honest points: the returning
-regulars keep coming after the 14 days (worth ₹83,423 a month in total), and the next version should
-report profit, not sales.
+**Is ROI measured on sales or profit?**
+Profit. ₹5,576 of extra sales × 18% kirana margin = **₹1,004 profit**, against ₹840 of cashback:
+**net +₹164, ₹1.2 per rupee**, labelled "not yet certain" because the control group is 15 people. The
+returning regulars keep coming after the 14 days, and that isn't counted. Margin per business type is in
+`world.py → CAT` (kirana 18%, tea stall 45%, salon 55%).
+
+**How is the forecast made?**
+The same way results are measured: *incremental* returns over the control group, not raw response.
+Win-back: 59 sent × 20% assumed extra return × ₹1,127 a month per customer = ₹13,303 of sales/month
+→ ₹2,395 profit/month. Over 14 days that's ₹6,208 of sales; the actual was ₹5,576. Both are shown on the
+result screen, so the forecast is checked against the measurement.
 
 **Isn't a 15-person control group too small?**
 Yes, and the app says so on screen ("treat as a direction, not proof"). With more shops or repeated
@@ -197,7 +207,8 @@ More transactions on Paytm from cashback campaigns, loan distribution fees, and 
 Soundbox subscription value.
 
 **Who pays for the cashback?**
-The merchant, from their own budget, with a hard cap (₹1,480 here). Not a rupee more can go out.
+The merchant, from their own budget, with a hard cap: **₹1,180** = 59 customers who get the offer × ₹20
+(the 15 in the control group can't use it). Not a rupee more can go out; ₹840 was actually used.
 
 **Why the Soundbox?**
 It's already on the counter and already trusted, and it's voice-first for shopkeepers who don't read apps.
@@ -237,6 +248,6 @@ failure rates); pooled measurement across shops; a full Key Fact Statement and c
 - The control group is small for one shop.
 - The festival forecast is a simple average × uplift.
 - The loan pricing is a demo assumption (1.5% a month, 1% fee), not a real partner's rate card.
-- The hourly chart compares with the **median** nearby shop, which is only as good as the number of nearby shops (3 salons for Glow).
-- The TTS voice depends on the laptop.
-- "₹7 per ₹1" is sales, not profit (see section 7).
+- Benchmarks need ≥ 5 shops; Glow and Raju fall back to area-wide groups (6 salons, 7 tea stalls).
+- The natural voice is pre-generated; lines never generated use the laptop's browser voice.
+- Forecast assumptions (20% extra win-back return, 15% combo take-up) are stated, not yet learned.

@@ -15,9 +15,9 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
+from .plays import split_sizes
 from .sense import Merchant, _mask, inr
 
-HOLDOUT_SHARE = 0.20
 FORWARD_DAYS = 14
 
 # How customers respond. These are the demo's assumptions and are shown in the UI.
@@ -46,6 +46,8 @@ class Campaign:
     treatment: list[str]
     holdout: list[str]
     created: dt.datetime
+    margin_pct: int = 0
+    expected_sales_month: int = 0
     status: str = "live"
     result: dict | None = None
     sim: pd.DataFrame | None = None
@@ -56,7 +58,7 @@ class Campaign:
                 "type": self.type, "offer": self.offer, "budget_cap": self.budget_cap,
                 "audience": len(self.treatment) + len(self.holdout),
                 "sent_to": len(self.treatment), "held_back": len(self.holdout),
-                "status": self.status, "result": self.result,
+                "status": self.status, "result": self.result, "margin_pct": self.margin_pct,
                 "created": self.created.strftime("%d %b, %I:%M %p")}
 
 
@@ -84,13 +86,15 @@ def approve(m: Merchant, opp, budget_cap: int | None = None) -> Campaign:
     rng = np.random.default_rng(_seed(opp.id))
     audience = list(action["audience"])
     rng.shuffle(audience)
-    n_hold = max(1, int(round(len(audience) * HOLDOUT_SHARE)))
+    _, n_hold = split_sizes(len(audience))
     holdout, treatment = audience[:n_hold], audience[n_hold:]
 
     c = Campaign(id=f"CMP{next(_ids):03d}", merchant_id=m.mid, play=opp.play,
                  type=action["type"], offer=action["offer"],
                  budget_cap=int(budget_cap or action["budget_cap"]),
-                 treatment=treatment, holdout=holdout, created=dt.datetime.now())
+                 treatment=treatment, holdout=holdout, created=dt.datetime.now(),
+                 margin_pct=int(opp.evidence.get("margin_pct", 0)),
+                 expected_sales_month=int(opp.evidence.get("est_extra_sales_month", 0)))
     shop = str(m.row["name"])
     c.notifications = [{"customer": _mask(cid), "customer_id": cid,
                         "text_en": offer_text(c.type, c.offer, shop, "en"),
@@ -153,12 +157,17 @@ def fast_forward(m: Merchant, c: Campaign, days: int = FORWARD_DAYS) -> dict:
     lift_rate = round(t["return_rate"] - h["return_rate"], 1)
     incremental = int(round((t["sales_per_customer"] - h["sales_per_customer"]) * t["customers"]))
     spend = int(sim.incentive.sum())
+    profit = int(round(incremental * c.margin_pct / 100))
+    expected = int(round(c.expected_sales_month * days / 30))
     c.result = {
         "days": days, "treatment": t, "holdout": h,
         "lift_pct_points": lift_rate,
         "extra_customers": int(round(lift_rate / 100 * t["customers"])),
         "incremental_sales": incremental, "spent": spend,
-        "return_per_rupee": round(incremental / spend, 1) if spend else None,
+        "margin_pct": c.margin_pct, "extra_profit": profit, "net_gain": profit - spend,
+        "profit_per_rupee": round(profit / spend, 1) if spend else None,
+        "expected_sales": expected,
+        "small_control": h["customers"] < 30,
         "total_sales": int(sim.amount.sum()),
         "chart": [{"who": "Got the offer", "rate": t["return_rate"]},
                   {"who": "Control group", "rate": h["return_rate"]}],
@@ -177,10 +186,12 @@ def result_speech(m: Merchant, c: Campaign, lang: str = "hi") -> str:
     if lang == "hi":
         return (f"जिन {t['customers']} ग्राहकों को ऑफर भेजा, उनमें से {t['returned']} वापस आए। "
                 f"बिना ऑफर वाले {h['customers']} में से सिर्फ {h['returned']}। "
-                f"अतिरिक्त बिक्री {inr(r['incremental_sales'])}, खर्च {inr(r['spent'])}।")
+                f"अतिरिक्त बिक्री {inr(r['incremental_sales'])}, उस पर मुनाफ़ा लगभग {inr(r['extra_profit'])}, "
+                f"कैशबैक खर्च {inr(r['spent'])}।")
     return (f"{t['returned']} of the {t['customers']} customers who got the offer came back, "
             f"against {h['returned']} of {h['customers']} who did not. "
-            f"Extra sales {inr(r['incremental_sales'])}, spend {inr(r['spent'])}.")
+            f"Extra sales {inr(r['incremental_sales'])}, about {inr(r['extra_profit'])} of profit, "
+            f"for {inr(r['spent'])} of cashback.")
 
 
 def loan_quote(opp) -> dict:

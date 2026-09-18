@@ -5,7 +5,13 @@ import { api } from "./api";
 export default function Console({ mid }: any) {
   const [t, setT] = useState<any>(null);
   const [tab, setTab] = useState("checks");
-  useEffect(() => { api.trace(mid).then(setT); }, [mid]);
+  useEffect(() => {                       // keep the audit trail live while the demo runs
+    let on = true;
+    const pull = () => api.trace(mid).then((d) => on && setT(d)).catch(() => {});
+    pull();
+    const id = setInterval(pull, 2000);
+    return () => { on = false; clearInterval(id); };
+  }, [mid]);
   if (!t) return <div className="rounded-2xl border border-[#e2e7ef] bg-white p-4 text-[12px] text-[#8a98ad]">Loading…</div>;
 
   const v = t.copy.validator;
@@ -36,7 +42,12 @@ export default function Console({ mid }: any) {
                   c.fired ? "bg-[#ecfdf3] text-[#067647]" : "bg-[#f4f6fa] text-[#a9b4c6]"}`}>
                   {c.fired ? "fired" : "quiet"}
                 </span>
-                <span className="flex-1 text-[11.5px] font-semibold text-[#2b3a52]">{c.label}</span>
+                <span className="flex-1 text-[11.5px] font-semibold text-[#2b3a52]">
+                  {c.label}
+                  {c.state && <span className="ml-1.5 rounded bg-[#eaf0fb] px-1.5 py-px text-[9px] font-extrabold uppercase text-[#002970]">
+                    {c.state.status === "tip" ? "tip accepted" : `${c.state.id} · ${c.state.status === "done" ? `${c.state.returned} back` : "running"}`}</span>}
+                  {c.plausibility && <span className="mt-0.5 block text-[10px] font-medium text-[#8a98ad]">{c.plausibility}</span>}
+                </span>
                 <span className="tnum shrink-0 text-right font-mono text-[10px] text-[#5b6b84]">
                   {String(c.value)}<span className="text-[#a9b4c6]"> / {c.threshold}</span>
                 </span>
@@ -50,8 +61,9 @@ export default function Console({ mid }: any) {
             <div className="rounded-xl bg-[#f7f9fc] p-2.5 text-[11px] text-[#5b6b84]">
               Copy written by <b className="text-[#0b1b33]">{t.copy.backend}</b>
               {t.copy.model && <> · <span className="font-mono">{t.copy.model}</span></>}
-              {t.copy.latency_ms && <> · {t.copy.latency_ms}ms</>}
-              {!live && <div className="mt-1 text-[#b54708]">Set ANTHROPIC_API_KEY or N8N_WEBHOOK_URL to switch this on.</div>}
+              {t.copy.cached ? <> · pre-generated, 0 API calls on stage</>
+                : t.copy.latency_ms > 0 ? <> · {t.copy.latency_ms}ms</> : null}
+              {!live && <div className="mt-1 text-[#b54708]">Set GEMINI_API_KEY in backend/.env to switch this on.</div>}
               {t.copy.error && <div className="mt-1 text-[#b54708]">{t.copy.error}</div>}
             </div>
 
