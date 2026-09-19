@@ -7,3 +7,6 @@ frontend/dist/
 .env
 *.env
 .env.*
+
+# personal stage notes
+DEMO.md
