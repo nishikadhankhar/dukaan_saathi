@@ -1,0 +1,8 @@
+**/.env
+**/*.env
+.git
+.claude
+**/node_modules
+frontend/dist
+**/__pycache__
+DEMO.md

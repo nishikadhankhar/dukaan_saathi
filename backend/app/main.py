@@ -280,7 +280,7 @@ def speech(text: str):
     f = tts.cached(text)
     if not f:
         raise HTTPException(404, "not pre-generated")
-    return FileResponse(f, media_type=tts.MEDIA_TYPE, headers={"Cache-Control": "max-age=86400"})
+    return FileResponse(f, media_type=tts.media_type(f), headers={"Cache-Control": "max-age=86400"})
 
 
 @app.post("/api/reset")

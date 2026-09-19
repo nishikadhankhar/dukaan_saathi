@@ -21,20 +21,28 @@ VOICE = "Kore"
 EXT, MEDIA_TYPE = (".m4a", "audio/mp4") if shutil.which("afconvert") else (".wav", "audio/wav")
 
 
-def _path(text: str) -> Path:
-    return DIR / (hashlib.sha256(text.strip().encode()).hexdigest()[:20] + EXT)
+def _path(text: str, ext: str = EXT) -> Path:
+    return DIR / (hashlib.sha256(text.strip().encode()).hexdigest()[:20] + ext)
 
 
 def cached(text: str) -> Path | None:
-    p = _path(text)
-    return p if p.exists() else None
+    # either format: files recorded on a Mac (.m4a) must still play on a Linux server
+    for ext in (".m4a", ".wav"):
+        p = _path(text, ext)
+        if p.exists():
+            return p
+    return None
+
+
+def media_type(p: Path) -> str:
+    return "audio/mp4" if p.suffix == ".m4a" else "audio/wav"
 
 
 def generate(text: str) -> Path:
     """Call Gemini TTS once and store the result. Raises on failure."""
+    if cached(text):
+        return cached(text)
     p = _path(text)
-    if p.exists():
-        return p
     from google import genai
     from google.genai import types
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
