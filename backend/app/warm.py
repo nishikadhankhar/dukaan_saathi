@@ -25,7 +25,7 @@ QR_AMOUNTS = [20, 45, 60, 85, 110, 140, 180, 230, 260, 320, 450]   # MerchantApp
 
 
 def received(amount: int, lang: str) -> str:                         # MerchantApp t.received
-    return f"{inr(amount)} प्राप्त हुए" if lang == "hi" else f"Received {inr(amount)}"
+    return f"Paytm पर {inr(amount)} प्राप्त हुए" if lang == "hi" else f"Received {inr(amount)} on Paytm"
 
 
 print("== AI copy")

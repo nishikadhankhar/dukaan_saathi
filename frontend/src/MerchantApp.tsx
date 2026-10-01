@@ -4,7 +4,7 @@ import { api, inr } from "./api";
 import { Icon } from "./icons";
 import { Hourly } from "./ui";
 
-// Merchant app palette
+// Paytm for Business palette
 const C = { navy: "#002E6E", sky: "#00BAF2", link: "#00A3DB", skyL: "#E5F7FE", bg: "#F5F7FA",
             line: "#E8EDF3", muted: "#667085", ink: "#101828" };
 
@@ -20,7 +20,7 @@ const L = {
         capT: (v: string) => `खर्च की सीमा ${v}`, capS: "इससे ज़्यादा एक रुपया भी नहीं कटेगा।",
         sbT: "नतीजा साउंडबॉक्स पर", sbS: "14 दिन बाद साउंडबॉक्स बताएगा कि कितने ग्राहक लौटे और कितनी कमाई हुई।",
         confirm: (v: string) => `मंज़ूरी दें · अधिकतम ${v}`, live: "ऑफर चालू है", sent: "ऑफर भेज दिया",
-        reached: (n: number, v: string) => `${n} ग्राहकों के पेमेंट ऐप में ${v} पहुँच गया`, sentN: "भेजा", control: "कंट्रोल ग्रुप",
+        reached: (n: number, v: string) => `${n} ग्राहकों के Paytm ऐप में ${v} पहुँच गया`, sentN: "भेजा", control: "कंट्रोल ग्रुप",
         cap: "खर्च की सीमा", preview: "ग्राहक के फ़ोन पर ऐसा दिखेगा", today: "आज", sentStep: "ऑफर भेजा",
         endStep: "ऑफर खत्म होगा", resultStep: "नतीजा साउंडबॉक्स पर", ff: "14 दिन आगे बढ़ाएँ", demo: "डेमो कंट्रोल — अगले दो हफ्ते चलाकर दिखाता है",
         results: "नतीजे · 14 दिन", extra: "ऑफर से अतिरिक्त बिक्री", spent: "खर्च", perRupee: (v: string) => `हर ₹1 पर ${v}`,
@@ -31,15 +31,15 @@ const L = {
         forecast: "अगले 30 दिन की अनुमानित बिक्री", lift: (f: string, p: number) => `${f} — बिक्री लगभग ${p}% ज़्यादा`,
         from: (p: string) => `${p} से`, perDay: "/ दिन", fromSettle: (d: number) => `सेटलमेंट से, ${d} दिन`,
         interest: "ब्याज", fee: "फ़ीस", total: "कुल चुकाना", facts: "ज़रूरी बातें",
-        consent: "मैं अपनी बिक्री की जानकारी इस आवेदन के लिए लेंडर से साझा करने की सहमति देता/देती हूँ।",
-        apply: "पार्टनर से आवेदन करें", appliedMsg: "आवेदन पार्टनर को भेज दिया। फ़ैसला लेंडर का होगा, हमारा नहीं। पैसा आने से पहले आपसे हस्ताक्षर माँगे जाएँगे।",
+        consent: "मैं अपनी Paytm बिक्री की जानकारी इस आवेदन के लिए लेंडर से साझा करने की सहमति देता/देती हूँ।",
+        apply: "पार्टनर से आवेदन करें", appliedMsg: "आवेदन पार्टनर को भेज दिया। फ़ैसला लेंडर का होगा, Paytm का नहीं। पैसा आने से पहले आपसे हस्ताक्षर माँगे जाएँगे।",
         applied: "आवेदन भेज दिया", sbTitle: "साउंडबॉक्स", linked: "जुड़ा है · डेमो डिवाइस",
         announcedToday: (n: number) => `आज ${n} भुगतान सुनाए`, voice: "दुकान साथी की आवाज़",
         toggles: [["शाम की रिपोर्ट", "रोज़ रात 9 बजे, दिन की बिक्री और एक मौका"], ["नए मौके बताएँ", "जब कोई ज़रूरी बात दिखे"], ["ऑफर के नतीजे", "ऑफर खत्म होने पर कमाई का हिसाब"]],
         recent: "हाल में सुनाया", saathiTag: "शाम की रिपोर्ट · दुकान साथी", payTag: "भुगतान",
-        received: (v: string) => `${v} प्राप्त हुए`, playNow: "आज की रिपोर्ट अभी सुनाएँ",
+        received: (v: string) => `Paytm पर ${v} प्राप्त हुए`, playNow: "आज की रिपोर्ट अभी सुनाएँ",
         proofMasked: (a: number, b: number) => `नाम और नंबर छिपे हैं · ${a} of ${b} दिखा रहे हैं`,
-        cols: ["ग्राहक", "विज़िट", "आख़िरी बार", "औसत बिल"], source: "स्रोत: आपके पेमेंट रिकॉर्ड · यही आँकड़े कार्ड पर दिखे हैं",
+        cols: ["ग्राहक", "विज़िट", "आख़िरी बार", "औसत बिल"], source: "स्रोत: आपके Paytm पेमेंट रिकॉर्ड · यही आँकड़े कार्ड पर दिखे हैं",
         daysAgo: (s: string) => s.replace(" days ago", " दिन पहले"),
         payments: "आज के भुगतान", paymentsSub: (n: number, v: string) => `${n} भुगतान · कुल ${v}`, announce: "सुनाएँ",
         offersT: "ऑफर", noRunning: "अभी कोई ऑफर नहीं चल रहा। नीचे से एक शुरू करें।", suggested: "दुकान साथी के सुझाव",
@@ -64,7 +64,7 @@ const L = {
         example: "उदाहरण", audienceOf: (a: number, b: number) => `${a} + ${b} कंट्रोल`,
         noLoanT: "अभी लोन की ज़रूरत नहीं", noLoanS: "आपकी बिक्री और स्टॉक का हिसाब ठीक है। त्योहार या बड़े ऑर्डर से पहले पैसे कम पड़ते दिखे तो दुकान साथी साउंडबॉक्स पर बताएगा।",
         profileT: "प्रोफ़ाइल", shopId: "मर्चेंट ID", type: "दुकान का प्रकार", language: "भाषा", soundboxRow: "साउंडबॉक्स सेटिंग",
-        dataNote: "यह डेमो दुकान है। आँकड़े सिम्युलेटेड हैं, पर ढाँचा असली पेमेंट रिकॉर्ड जैसा है।",
+        dataNote: "यह डेमो दुकान है। आँकड़े सिम्युलेटेड हैं, पर ढाँचा असली Paytm पेमेंट रिकॉर्ड जैसा है।",
         cat: { kirana: "किराना", salon: "सैलून", chai: "चाय की दुकान", pharmacy: "मेडिकल", restaurant: "रेस्टोरेंट" } as any },
   en: { collection: "Today's collection", pay: "payments", cust: "customers", bill: "avg bill", settle: "Settlement: tonight, 10 PM",
         history: "History", services: ["Soundbox", "Loans", "Offers", "Reports"], saathi: "Dukaan Saathi · today's opportunities",
@@ -77,7 +77,7 @@ const L = {
         capT: (v: string) => `Spending capped at ${v}`, capS: "Not a rupee more can go out.",
         sbT: "Result on the Soundbox", sbS: "In 14 days the Soundbox announces how many came back and what it earned.",
         confirm: (v: string) => `Approve · ${v} max`, live: "Offer running", sent: "Offer sent",
-        reached: (n: number, v: string) => `${v} reached ${n} customers in their payment app`, sentN: "sent", control: "control group",
+        reached: (n: number, v: string) => `${v} reached ${n} customers in their Paytm app`, sentN: "sent", control: "control group",
         cap: "spend cap", preview: "What the customer sees", today: "Today", sentStep: "Offer sent",
         endStep: "Offer ends", resultStep: "Result on the Soundbox", ff: "Fast-forward 14 days", demo: "Demo control — plays the next two weeks forward",
         results: "Results · 14 days", extra: "Extra sales from the offer", spent: "Spent", perRupee: (v: string) => `${v} per ₹1`,
@@ -88,15 +88,15 @@ const L = {
         forecast: "Expected sales, next 30 days", lift: (f: string, p: number) => `${f} — sales up about ${p}%`,
         from: (p: string) => `from ${p}`, perDay: "/ day", fromSettle: (d: number) => `from settlements, ${d} days`,
         interest: "Interest", fee: "Fee", total: "Total repayable", facts: "Key facts",
-        consent: "I agree to share my sales data with the lender for this application.",
-        apply: "Apply through partner", appliedMsg: "Application sent to the partner. The lender decides, not us. You will be asked to sign before any money moves.",
+        consent: "I agree to share my Paytm sales data with the lender for this application.",
+        apply: "Apply through partner", appliedMsg: "Application sent to the partner. The lender decides, not Paytm. You will be asked to sign before any money moves.",
         applied: "Application sent", sbTitle: "Soundbox", linked: "Connected · demo device",
         announcedToday: (n: number) => `${n} payments announced today`, voice: "Dukaan Saathi voice",
         toggles: [["Evening report", "Every night at 9 — the day's sales and one opportunity"], ["New opportunities", "When something important comes up"], ["Offer results", "What the offer earned, once it ends"]],
         recent: "Recently announced", saathiTag: "Evening report · Dukaan Saathi", payTag: "Payment",
-        received: (v: string) => `Received ${v}`, playNow: "Play today's report now",
+        received: (v: string) => `Received ${v} on Paytm`, playNow: "Play today's report now",
         proofMasked: (a: number, b: number) => `Names and numbers hidden · showing ${a} of ${b}`,
-        cols: ["Customer", "Visits", "Last seen", "Avg bill"], source: "Source: your payment records — the same figures shown on the card",
+        cols: ["Customer", "Visits", "Last seen", "Avg bill"], source: "Source: your Paytm payment records — the same figures shown on the card",
         daysAgo: (s: string) => s,
         payments: "Today's payments", paymentsSub: (n: number, v: string) => `${n} payments · ${v} total`, announce: "Announce",
         offersT: "Offers", noRunning: "No offer running yet. Start one below.", suggested: "Suggested by Dukaan Saathi",
@@ -121,7 +121,7 @@ const L = {
         example: "Example", audienceOf: (a: number, b: number) => `${a} + ${b} control`,
         noLoanT: "No loan needed right now", noLoanS: "Your sales cover your stock. If a festival or big order looks likely to leave you short, Dukaan Saathi will say so on the Soundbox.",
         profileT: "Profile", shopId: "Merchant ID", type: "Shop type", language: "Language", soundboxRow: "Soundbox settings",
-        dataNote: "This is a demo shop. The figures are simulated but shaped exactly like real payment records.",
+        dataNote: "This is a demo shop. The figures are simulated but shaped exactly like Paytm payment records.",
         cat: { kirana: "Kirana", salon: "Salon", chai: "Tea stall", pharmacy: "Pharmacy", restaurant: "Restaurant" } as any },
 };
 
@@ -623,7 +623,7 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
       {screen === "loan" && loan && opp && (() => {
         const f = opp.charts.forecast, mx = Math.max(...f.map((x: any) => x.sales));
         const facts = lang === "hi" ? [
-          `लोन ${loan.partner} देता है। दुकान साथी सिर्फ़ जोड़ता है, लोन देने वाला नहीं।`,
+          `लोन ${loan.partner} देता है। Paytm सिर्फ़ जोड़ता है, लोन देने वाला नहीं।`,
           `ब्याज ${loan.monthly_rate_pct}% प्रति माह, घटते बैलेंस पर (कुल ${inr(loan.interest)})। ${inr(loan.processing_fee)} फ़ीस पहले कटेगी, आपको ${inr(loan.amount_received)} मिलेंगे। APR ${loan.apr_pct}%।`,
           "आपकी सहमति के बिना कुछ नहीं भेजा जाता। पैसा लेंडर की मंज़ूरी के बाद ही आता है।",
         ] : [loan.disclosures[0], loan.disclosures[1], loan.disclosures[3]];
@@ -686,7 +686,7 @@ export default function MerchantApp({ mid, lang, onSpeak, onNotify, onCampaign, 
                 <div className="absolute left-[22px] top-[79px] h-[6px] w-[22px] rounded-full bg-[#123F6D]" />
               </div>
               <div className="min-w-0">
-                <div className="text-[15.5px] font-extrabold">Soundbox</div>
+                <div className="text-[15.5px] font-extrabold">Paytm Soundbox</div>
                 <div className="deva mt-1 flex items-center gap-1.5 text-[12px] font-semibold text-[#067647]"><span className="h-2 w-2 rounded-full bg-[#12B76A]" />{t.linked}</div>
                 <div className="deva tnum mt-1 text-[12px] font-medium text-[#667085]">{t.announcedToday(s.today_txns)}</div>
               </div>
