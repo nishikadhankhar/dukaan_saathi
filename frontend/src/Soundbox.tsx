@@ -31,7 +31,7 @@ export default function Soundbox({ briefing, request, lang, amount }: any) {
         <div className="mt-3 rounded-xl bg-[#03131f] px-3 py-2.5 ring-1 ring-black/50"
           style={{ boxShadow: "inset 0 2px 10px rgba(0,0,0,.7)" }}>
           <div className="flex items-center justify-between">
-            <span className="text-[7px] font-extrabold uppercase tracking-[0.22em] text-[#2b6f8c]">Paytm</span>
+            <span className="text-[7px] font-extrabold uppercase tracking-[0.22em] text-[#2b6f8c]">Soundbox</span>
             <span className={`h-1.5 w-1.5 rounded-full transition ${
               speaking ? "bg-[#5ad8ff] shadow-[0_0_8px_2px_rgba(90,216,255,.7)]" : "bg-[#173a4d]"}`} />
           </div>

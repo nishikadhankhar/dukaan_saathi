@@ -30,7 +30,7 @@ Everything here is checked against the code. About 3,000 lines in total: 1,600 P
 | zlib (built-in) | — | `crc32` makes stable random seeds, so the demo gives identical numbers every run | `act.py` |
 
 **No database.** The world (34 shops, 6,000 customers, 2,19,145 payments over 90 days) is built in memory
-with pandas in about 1–2 seconds at startup. Production would read from Paytm's data warehouse instead.
+with pandas in about 1–2 seconds at startup. Production would read from the payment platform's data warehouse instead.
 
 ### Frontend, folder `frontend/src/`
 
@@ -39,7 +39,7 @@ with pandas in about 1–2 seconds at startup. Production would read from Paytm'
 | **React** | 18.3 | UI components and screen state | all `.tsx` |
 | **TypeScript** | 5.6 | Typed JavaScript | all |
 | **Vite** | 6 | Dev server and production build (`npm run build` → `frontend/dist`) | `vite.config.ts` |
-| **Tailwind CSS** | 4 | Styling via utility classes, colours matched to Paytm for Business | everywhere, `index.css` |
+| **Tailwind CSS** | 4 | Styling via utility classes, merchant-app palette | everywhere, `index.css` |
 | **Recharts** | 2.15 | Charts: weekly visits (evidence), 30-day sales (reports) | `MerchantApp.tsx` |
 | **Web Speech API** | browser built-in | **Text-to-speech (TTS)** for the Soundbox voice | `api.ts` → `speak()` |
 | @fontsource | 5 | Plus Jakarta Sans (English), **Mukta** (Devanagari/Hindi), JetBrains Mono. **Bundled**, with no Google CDN, so venue Wi-Fi can't break the Hindi | `main.tsx` |
@@ -64,7 +64,7 @@ with pandas in about 1–2 seconds at startup. Production would read from Paytm'
 - **How the phone makes the counter device speak:** any "play" button calls `onSpeak(text)` →
   `App.tsx say()` stores `{text, time}` → the `Soundbox` component notices the change and speaks
   while its light pulses. One code path for everything, so the in-app Soundbox screen visibly drives the device.
-- **In production:** the same idea. The Soundbox gets one short message a day, so Paytm's servers generate
+- **In production:** the same idea. The Soundbox gets one short message a day, so the platform's servers generate
   its audio once (Gemini TTS, Google Cloud TTS or Bhashini) and push the file to the device.
 
 ## 4. Backend files: what each one does
@@ -119,7 +119,7 @@ That's the rule being conservative, not a bug.
 
 | Real (working code) | Simulated |
 |---|---|
-| Detectors, all maths, provenance, masking | **The payment data** (generated, shaped like a Paytm ledger) |
+| Detectors, all maths, provenance, masking | **The payment data** (generated, shaped like a real merchant ledger) |
 | Gemini text generation + grounding checker | **Customer responses in fast-forward**: assumed rates of 46% (offer group) vs 13% (control) returning, 1–3 visits each |
 | Random 20% holdout, the measurement maths | Sending offers and notifications (shown on a mock customer phone) |
 | Loan maths, disclosures, consent gate | The lending partner ("Demo Partner NBFC"), with no real application |
@@ -148,11 +148,11 @@ Cached text is served in about 0.3 s, with templates behind it. The demo needs n
 
 **Why FastAPI / React?**
 FastAPI is Python, which is where pandas lives; it's quick to build and gives typed endpoints. React + Vite for a fast
-single-page phone UI. Tailwind to match Paytm's look quickly.
+single-page phone UI. Tailwind to match a merchant-app look quickly.
 
 **Where's the database?**
 None in the prototype: the world is generated in memory at startup, deterministic from a seed. Production
-would run detectors as a nightly batch over Paytm's warehouse (for example Spark/SQL) and store cards per merchant.
+would run detectors as a nightly batch over the platform's warehouse (for example Spark/SQL) and store cards per merchant.
 
 ### Data science
 **How do you define a "regular" and "lapsed"?**
@@ -198,12 +198,12 @@ Average daily sales over the last 28 days × 10 festival days × 35% uplift = ex
 last year's festival sales for that shop.
 
 **Why simulated data?**
-We have no access to real Paytm data (RBI rules, DPDP Act). The simulation has the same columns as a
+We have no access to real merchant payment data (RBI rules, DPDP Act). The simulation has the same columns as a
 ledger, and planting known cases lets us prove the detectors find them (74 planted → 74 found).
 
 ### Product and business
-**How does Paytm earn from this?**
-More transactions on Paytm from cashback campaigns, loan distribution fees, and merchant retention and
+**How does the platform earn from this?**
+More transactions on the platform from cashback campaigns, loan distribution fees, and merchant retention and
 Soundbox subscription value.
 
 **Who pays for the cashback?**

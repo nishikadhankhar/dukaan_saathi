@@ -1,13 +1,11 @@
 # Dukaan Saathi
 
-**An AI business partner for Paytm merchants, delivered through the Soundbox already on the counter.**
+**An AI business partner for small merchants, delivered through the Soundbox already on the counter.**
 
-Paytm merchants already know what they earned. Nobody tells them what to *do*.
+Small merchants already know what they earned. Nobody tells them what to *do*.
 Dukaan Saathi reads a shop's payment history, finds the one thing worth acting on
 today, says it out loud in the shopkeeper's language, executes it on one tap, and
 then reports back what it actually earned them.
-
-Paytm Build for India AI Hackathon — Merchant Growth AI track. Team **Solo_commit**.
 
 ---
 
@@ -89,9 +87,9 @@ ACT     approve -> budget cap -> 80/20 offer/control split -> offer on customer 
 
 | Real, running code | Simulated |
 |---|---|
-| Analytics, detectors, shop comparisons | The payment data — no real Paytm data is used |
+| Analytics, detectors, shop comparisons | The payment data — no real merchant data is used |
 | Model copy, ranking, Hindi translation | The Soundbox (on screen) |
-| Number check, control-group maths, audit log | The offer arriving in a customer's Paytm app |
+| Number check, control-group maths, audit log | The offer arriving in a customer's payment app |
 | Voice output (browser speech) | How customers respond to an offer |
 | Loan terms and consent flow | The lending partner |
 

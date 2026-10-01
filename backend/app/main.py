@@ -258,7 +258,7 @@ def loan_apply(mid: str, body: ConsentIn) -> dict:
         raise HTTPException(400, "consent is required before anything is sent")
     S.log("Loan application sent to partner", f"{S.merchant(mid).row['name']}: consent given, awaiting lender decision")
     return {"status": "sent_to_partner",
-            "message": "Application sent to Demo Partner NBFC. They decide, not Paytm. "
+            "message": "Application sent to Demo Partner NBFC. They decide, not us. "
                        "You will be asked to sign before any money moves."}
 
 

@@ -59,7 +59,7 @@ class CardSet(BaseModel):
 
 
 SYSTEM = """You write for Dukaan Saathi, an assistant for small Indian shopkeepers
-(kirana stores, salons, tea stalls) that speaks through their Paytm Soundbox.
+(kirana stores, salons, tea stalls) that speaks through their Soundbox.
 
 HARD RULES
 1. Use ONLY numbers that appear in the evidence JSON you are given. Never invent a

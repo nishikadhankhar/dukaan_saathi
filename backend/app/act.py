@@ -201,7 +201,7 @@ def loan_quote(opp) -> dict:
             "total_repayable": a["total_repayable"], "daily_repayment": a["daily_repayment"],
             "interest": a["interest"], "amount_received": a["amount_received"], "apr_pct": a["apr_pct"],
             "disclosures": [
-                f"Offered by {a['partner']}, a demo lending partner. Paytm is a distributor, not the lender.",
+                f"Offered by {a['partner']}, a demo lending partner. Dukaan Saathi is a distributor, not the lender.",
                 f"Interest {a['monthly_rate_pct']}% per month on the reducing balance "
                 f"({inr(a['interest'])} in total), plus a {inr(a['processing_fee'])} processing fee "
                 f"deducted at disbursal, so you receive {inr(a['amount_received'])}. "
